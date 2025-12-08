@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البنك العائلي (Online)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #111827; --card: #1f2937; --input: #374151; --gold: #fbbf24; --gold-dark: #d97706; --text: #f3f4f6; --green: #10b981; --red: #ef4444; --telegram: #229ED9; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-bottom: 70px; }
+        header { width: 100%; max-width: 500px; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: var(--card); border-bottom: 1px solid #374151; position: fixed; top: 0; z-index: 100; }
+        .app-name { font-weight: bold; color: var(--gold); font-size: 18px; }
+        .date-time { font-size: 12px; color: #9ca3af; text-align: left; }
+        .container { width: 100%; max-width: 500px; padding: 20px; margin-top: 60px; }
+        .screen { display: none; animation: fadeIn 0.4s; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); border: 1px solid #374151; margin-bottom: 15px; }
+        .promo-box { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #000; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; font-weight: bold; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        .input-group { margin-bottom: 15px; position: relative; }
+        .input-group i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+        input { width: 100%; background: var(--input); border: 1px solid #4b5563; padding: 12px 45px 12px 15px; border-radius: 10px; color: white; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--gold); }
+        button { width: 100%; background: var(--gold); color: #000; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: var(--gold-dark); color: white; }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
+        .btn-danger:hover { background: var(--red); color: white; }
+        .balance-display { text-align: center; padding: 20px; background: linear-gradient(to right, #1f2937, #111827); border: 1px solid var(--gold); border-radius: 15px; position: relative; overflow: hidden; }
+        .balance-display::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(251,191,36,0.1) 0%, transparent 70%); }
+        .coin-amount { font-size: 36px; font-weight: 700; color: var(--gold); margin: 5px 0; }
+        .loan-item { display: flex; justify-content: space-between; align-items: center; background: #2d3748; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-right: 4px solid var(--gold); }
+        .loan-info h4 { color: white; font-size: 16px; }
+        .loan-info p { color: #9ca3af; font-size: 13px; }
+        .loan-btn { width: auto; padding: 8px 15px; font-size: 13px; margin: 0; background: var(--green); color: white; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 500px; background: var(--card); display: flex; justify-content: space-around; padding: 10px; border-top: 1px solid #374151; z-index: 99; }
+        .nav-btn { background: none; color: #9ca3af; flex-direction: column; display: flex; align-items: center; font-size: 12px; gap: 5px; margin: 0; padding: 5px; }
+        .nav-btn.active { color: var(--gold); }
+        .history-list { font-size: 13px; max-height: 200px; overflow-y: auto; }
+        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #374151; }
+        .alert { padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; display: none; font-size: 13px; }
+        .alert-success { background: rgba(16, 185, 129, 0.2); color: var(--green); border: 1px solid var(--green); }
+        .alert-error { background: rgba(239, 68, 68, 0.2); color: var(--red); border: 1px solid var(--red); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--card); width: 90%; max-width: 350px; padding: 30px 20px; border-radius: 20px; text-align: center; border: 1px solid var(--gold); position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .tg-icon { font-size: 50px; color: var(--telegram); margin-bottom: 15px; }
+        .user-tag { background: #111827; padding: 10px; border-radius: 8px; color: var(--telegram); font-family: monospace; font-size: 16px; margin-bottom: 20px; display: block; border: 1px dashed var(--telegram); cursor: pointer; }
+        .btn-tg { background: var(--telegram); color: white; width: 100%; margin-bottom: 10px; }
+        .btn-close { background: transparent; border: 1px solid #374151; color: #9ca3af; width: 100%; }
+        /* Loader */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--gold); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <header id="mainHeader" style="display: none;">
+        <div class="app-name"><i class="fa-solid fa-building-columns"></i> البنك العائلي <small style="font-size: 10px; color: var(--green)">Online</small></div>
+        <div class="date-time" id="dateTimeDisplay">--:--</div>
+    </header>
+
+    <div class="container">
+        <div id="loginScreen" class="screen active">
+            <div class="card" style="margin-top: 50px;">
+                <h2 style="text-align: center; color: var(--gold); margin-bottom: 20px;">البنك العائلي الإلكتروني</h2>
+                <div class="promo-box">
+                    <i class="fa-solid fa-gift"></i><br>
+                    اجمع 250 كوين واربح 25 ألف دينار عراقي!
+                </div>
+                <div id="loginMsg" class="alert alert-error"></div>
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="username" placeholder="اسم المستخدم">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-key"></i>
+                    <input type="password" id="password" placeholder="كلمة المرور">
+                </div>
+                <button onclick="window.loginApp()">دخول</button>
+                <div id="loadingLogin" style="text-align:center; margin-top:10px; display:none;"><div class="loader"></div> جاري الاتصال...</div>
+            </div>
+        </div>
+
+        <div id="homeScreen" class="screen">
+            <div class="balance-display">
+                <div style="font-size: 14px; color: #9ca3af;">رصيدك الحالي</div>
+                <div class="coin-amount" id="displayBalance">... <span style="font-size: 18px;">كوين</span></div>
+                <div style="font-size: 12px; color: var(--green);">حساب موثق <i class="fa-solid fa-circle-check"></i></div>
+            </div>
+
+            <div class="card">
+                <h3><i class="fa-solid fa-money-bill-transfer"></i> تحويل كوين</h3>
+                <div id="transferMsg" class="alert"></div>
+                <input type="text" id="recipient" placeholder="اسم المستلم (userX)" style="margin-bottom: 10px;">
+                <input type="number" id="amount" placeholder="عدد الكوينز" style="margin-bottom: 10px;">
+                <button onclick="window.transferCoin()">إرسال فوري</button>
+            </div>
+
+            <div class="card">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> السجل المباشر</h3>
+                <div id="historyList" class="history-list">جارِ تحميل السجل...</div>
+            </div>
+        </div>
+
+        <div id="loanScreen" class="screen">
+            <h2 style="color: var(--gold); margin-bottom: 20px; text-align: center;">سوق القروض</h2>
+            <div class="card">
+                <div class="loan-item">
+                    <div class="loan-info"><h4>قرض 200 كوين</h4><p>السعر: 20,000 دينار</p></div>
+                    <button class="loan-btn" onclick="window.openLoanModal(200, '20,000')">طلب</button>
+                </div>
+                <div class="loan-item">
+                    <div class="loan-info"><h4>قرض 100 كوين</h4><p>السعر: 10,000 دينار</p></div>
+                    <button class="loan-btn" onclick="window.openLoanModal(100, '10,000')">طلب</button>
+                </div>
+                <div class="loan-item">
+                    <div class="loan-info"><h4>قرض 400 كوين</h4><p>السعر: 40,000 دينار</p></div>
+                    <button class="loan-btn" onclick="window.openLoanModal(400, '40,000')">طلب</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settingsScreen" class="screen">
+            <h2 style="color: var(--gold); margin-bottom: 20px; text-align: center;">الإعدادات</h2>
+            <div class="card">
+                <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-user-pen"></i> تغيير كلمة المرور</h3>
+                <div id="settingsMsg" class="alert"></div>
+                <input type="text" id="newPassword" placeholder="كلمة المرور الجديدة">
+                <button onclick="window.updatePass()">حفظ التغييرات</button>
+            </div>
+            <div class="card" style="border-color: var(--red);">
+                <button class="btn-danger" onclick="window.logoutApp()"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tgModal" class="modal-overlay">
+        <div class="modal-content">
+            <i class="fa-brands fa-telegram tg-icon"></i>
+            <h3 class="modal-title" style="color: white; margin-bottom: 10px;">إكمال طلب القرض</h3>
+            <p style="font-size: 13px; color: #9ca3af; margin-bottom: 20px;">
+                للحصول على <span id="modalAmount" style="color: var(--gold); font-weight:bold;">--</span> كوين، 
+                ارسل سكرين شوت للعداد.
+            </p>
+            <div class="user-tag" onclick="window.copyUser()">@vvqmm <i class="fa-regular fa-copy"></i></div>
+            <div id="copyMsg" style="font-size:10px; color:var(--green); margin-bottom:10px; display:none;">تم النسخ!</div>
+            <a href="https://t.me/vvqmm" target="_blank" style="text-decoration: none;"><button class="btn-tg">فتح تليجرام</button></a>
+            <button class="btn-close" onclick="window.closeModal()">إغلاق</button>
+        </div>
+    </div>
+
+    <nav id="bottomNav" class="bottom-nav" style="display: none;">
+        <button class="nav-btn active" onclick="window.switchScreen('homeScreen', this)"><i class="fa-solid fa-wallet"></i> المحفظة</button>
+        <button class="nav-btn" onclick="window.switchScreen('loanScreen', this)"><i class="fa-solid fa-sack-dollar"></i> القروض</button>
+        <button class="nav-btn" onclick="window.switchScreen('settingsScreen', this)"><i class="fa-solid fa-gear"></i> الإعدادات</button>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, update, onValue, child, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzthotcwzFkMHuJVG6EXf0mr6ZPnZpe8M",
+            authDomain: "coeins-4b149.firebaseapp.com",
+            databaseURL: "https://coeins-4b149-default-rtdb.firebaseio.com",
+            projectId: "coeins-4b149",
+            storageBucket: "coeins-4b149.firebasestorage.app",
+            messagingSenderId: "30968526506",
+            appId: "1:30968526506:web:5a437551aabbf4855402d3",
+            measurementId: "G-94568KXQQ7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let currentUser = null;
+
+        // تهيئة النظام لأول مرة (إنشاء 10 مستخدمين إذا كانت القاعدة فارغة)
+        async function initSystem() {
+            const dbRef = ref(db);
+            get(child(dbRef, `users/user1`)).then((snapshot) => {
+                if (!snapshot.exists()) {
+                    console.log("Creating initial users...");
+                    const updates = {};
+                    for (let i = 1; i <= 10; i++) {
+                        let pass = (i === 10) ? "1010" : `${i}${i}${i}${i}`;
+                        updates[`users/user${i}`] = {
+                            password: pass,
+                            balance: 100,
+                            history: { 0: { msg: "ترحيب: تم إنشاء الحساب", amount: 100, type: "in", time: "النظام" } }
+                        };
+                    }
+                    update(ref(db), updates);
+                }
+            }).catch((error) => console.error(error));
+        }
+        initSystem(); // تشغيل عند الفتح
+
+        // --- دوال النظام (مربوطة بالـ Window) ---
+
+        window.loginApp = function() {
+            const u = document.getElementById('username').value.trim().toLowerCase();
+            const p = document.getElementById('password').value;
+            const msg = document.getElementById('loginMsg');
+            const loader = document.getElementById('loadingLogin');
+
+            if(!u || !p) { msg.innerText = 'املأ الحقول'; msg.style.display='block'; return; }
+            
+            loader.style.display = 'block';
+            msg.style.display = 'none';
+
+            get(child(ref(db), `users/${u}`)).then((snapshot) => {
+                loader.style.display = 'none';
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    if (userData.password == p) {
+                        currentUser = u;
+                        setupSession();
+                    } else {
+                        msg.innerText = 'كلمة المرور خطأ'; msg.style.display='block';
+                    }
+                } else {
+                    msg.innerText = 'المستخدم غير موجود'; msg.style.display='block';
+                }
+            }).catch((err) => {
+                loader.style.display = 'none';
+                msg.innerText = 'خطأ في الاتصال'; msg.style.display='block';
+            });
+        };
+
+        function setupSession() {
+            document.getElementById('loginScreen').classList.remove('active');
+            document.getElementById('homeScreen').classList.add('active');
+            document.getElementById('mainHeader').style.display = 'flex';
+            document.getElementById('bottomNav').style.display = 'flex';
+            
+            // الاستماع الحي للتغييرات (Realtime Listener)
+            onValue(ref(db, `users/${currentUser}`), (snapshot) => {
+                if(snapshot.exists()) {
+                    const data = snapshot.val();
+                    // تحديث الرصيد
+                    document.getElementById('displayBalance').innerHTML = `${data.balance} <span style="font-size: 18px;">كوين</span>`;
+                    
+                    // تحديث السجل
+                    const list = document.getElementById('historyList');
+                    list.innerHTML = '';
+                    if(data.history) {
+                        const historyArray = Object.values(data.history).reverse(); // تحويل Object ل Array وعكسه
+                        historyArray.forEach(h => {
+                            const color = h.type === 'in' ? 'var(--green)' : 'var(--red)';
+                            const sign = h.type === 'in' ? '+' : '-';
+                            list.innerHTML += `
+                                <div class="history-item">
+                                    <div><span style="color:#9ca3af; margin-left:5px;">${h.time}</span> ${h.msg}</div>
+                                    <div style="color:${color}; font-weight:bold">${sign}${h.amount}</div>
+                                </div>
+                            `;
+                        });
+                    }
+                }
+            });
+        }
+
+        window.transferCoin = async function() {
+            const to = document.getElementById('recipient').value.trim().toLowerCase();
+            const amount = parseInt(document.getElementById('amount').value);
+            const msg = document.getElementById('transferMsg');
+
+            if (!to || !amount || amount <= 0 || to === currentUser) {
+                msg.className = 'alert alert-error'; msg.innerText = 'بيانات خطأ'; msg.style.display = 'block'; return;
+            }
+
+            // التحقق من الرصيد والمستلم
+            const senderRef = ref(db, `users/${currentUser}`);
+            const receiverRef = ref(db, `users/${to}`);
+
+            try {
+                const senderSnap = await get(senderRef);
+                const receiverSnap = await get(receiverRef);
+
+                if (!receiverSnap.exists()) {
+                    msg.className = 'alert alert-error'; msg.innerText = 'المستلم غير موجود'; msg.style.display = 'block'; return;
+                }
+                
+                const senderData = senderSnap.val();
+                if (senderData.balance < amount) {
+                    msg.className = 'alert alert-error'; msg.innerText = 'رصيدك غير كافٍ'; msg.style.display = 'block'; return;
+                }
+
+                // تنفيذ التحويل
+                const timeStr = new Date().toLocaleTimeString('ar-IQ');
+                
+                // تحديث المرسل
+                update(senderRef, { balance: senderData.balance - amount });
+                push(ref(db, `users/${currentUser}/history`), { type: 'out', msg: `إلى ${to}`, amount: amount, time: timeStr });
+
+                // تحديث المستلم
+                const receiverData = receiverSnap.val();
+                update(receiverRef, { balance: receiverData.balance + amount });
+                push(ref(db, `users/${to}/history`), { type: 'in', msg: `من ${currentUser}`, amount: amount, time: timeStr });
+
+                msg.className = 'alert alert-success'; msg.innerText = 'تم التحويل بنجاح!'; msg.style.display = 'block';
+                document.getElementById('recipient').value = ''; document.getElementById('amount').value = '';
+                setTimeout(() => msg.style.display = 'none', 3000);
+
+            } catch (err) {
+                console.error(err);
+                msg.className = 'alert alert-error'; msg.innerText = 'حدث خطأ في النظام'; msg.style.display = 'block';
+            }
+        };
+
+        window.updatePass = function() {
+            const newP = document.getElementById('newPassword').value;
+            const msg = document.getElementById('settingsMsg');
+            if(!newP) return;
+
+            update(ref(db, `users/${currentUser}`), { password: newP })
+            .then(() => {
+                msg.className = 'alert alert-success'; msg.innerText = 'تم تغيير الرمز بنجاح'; msg.style.display = 'block';
+            });
+        };
+
+        window.logoutApp = function() {
+            location.reload();
+        };
+
+        // --- دوال الواجهة (UI Helpers) ---
+        window.switchScreen = function(screenId, btn) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+        };
+
+        window.openLoanModal = function(c, p) {
+            document.getElementById('modalAmount').innerText = c;
+            document.getElementById('tgModal').style.display = 'flex';
+        };
+        window.closeModal = function() { document.getElementById('tgModal').style.display = 'none'; };
+        window.copyUser = function() {
+            navigator.clipboard.writeText('vvqmm');
+            document.getElementById('copyMsg').style.display = 'block';
+        };
+
+        // الوقت والتاريخ
+        setInterval(() => {
+            document.getElementById('dateTimeDisplay').innerText = new Date().toLocaleDateString('ar-IQ', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+
+    </script>
+</body>
+</html>
