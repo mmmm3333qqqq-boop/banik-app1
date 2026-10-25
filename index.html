@@ -1256,6 +1256,18 @@
                 return messages.filter(m => !m.groupId && m.to === user.id && !m.read).length;
             }, [messages, user]);
 
+            // الربط الحي مع Firebase Realtime Database
+            const rtdb = useMemo(() => {
+                if (typeof firebase !== 'undefined' && firebase.apps.length) {
+                    try {
+                        return firebase.database();
+                    } catch (e) {
+                        console.warn("RTDB initialization error:", e);
+                    }
+                }
+                return null;
+            }, []);
+
             useEffect(() => {
                 const safeParse = (key, fallback) => {
                     try {
@@ -1299,6 +1311,49 @@
                 setLoanRequests(savedLoans);
                 setLoginLogs(savedLogs);
 
+                // الاستماع اللحظي للمنشورات من فايربيس
+                if (rtdb) {
+                    const postsRef = rtdb.ref('risala_posts');
+                    postsRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val) {
+                            const cloudPosts = Array.isArray(val) ? val : Object.values(val);
+                            setPosts(cloudPosts);
+                            localStorage.setItem(`app_posts_${storageVersion}`, JSON.stringify(cloudPosts));
+                        }
+                    });
+
+                    const usersRef = rtdb.ref('risala_users');
+                    usersRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val) {
+                            const cloudUsers = Array.isArray(val) ? val : Object.values(val);
+                            setUsers(cloudUsers);
+                            localStorage.setItem(`app_users_${storageVersion}`, JSON.stringify(cloudUsers));
+                        }
+                    });
+
+                    const msgsRef = rtdb.ref('risala_messages');
+                    msgsRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val) {
+                            const cloudMsgs = Array.isArray(val) ? val : Object.values(val);
+                            setMessages(cloudMsgs);
+                            localStorage.setItem(`app_msgs_${storageVersion}`, JSON.stringify(cloudMsgs));
+                        }
+                    });
+
+                    const loansRef = rtdb.ref('risala_loans');
+                    loansRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val) {
+                            const cloudLoans = Array.isArray(val) ? val : Object.values(val);
+                            setLoanRequests(cloudLoans);
+                            localStorage.setItem(`app_loans_${storageVersion}`, JSON.stringify(cloudLoans));
+                        }
+                    });
+                }
+
                 try {
                     const session = JSON.parse(localStorage.getItem(`app_session_${storageVersion}`));
                     if (session) {
@@ -1311,7 +1366,16 @@
                     }
                 } catch(e) {}
                 setIsLoaded(true);
-            }, []);
+
+                return () => {
+                    if (rtdb) {
+                        rtdb.ref('risala_posts').off();
+                        rtdb.ref('risala_users').off();
+                        rtdb.ref('risala_messages').off();
+                        rtdb.ref('risala_loans').off();
+                    }
+                };
+            }, [rtdb]);
 
             useEffect(() => {
                 if (isLoaded) {
@@ -1325,13 +1389,25 @@
                 }
             }, [users, posts, messages, groups, loanRequests, loginLogs, isLoaded]);
 
+            // مزامنة حالة المستخدم الحالي إذا تم تحديث بياناته من السحابة
+            useEffect(() => {
+                if (user) {
+                    const updatedMe = users.find(u => u.id === user.id);
+                    if (updatedMe && JSON.stringify(updatedMe) !== JSON.stringify(user)) {
+                        setUser(updatedMe);
+                    }
+                }
+            }, [users]);
+
             useEffect(() => {
                 if (selectedChatTarget && !selectedChatTarget.isGroup && user && view === 'messages') {
                     const hasUnread = messages.some(m => !m.groupId && m.from === selectedChatTarget.id && m.to === user.id && !m.read);
                     if (hasUnread) {
-                        setMessages(prev => prev.map(m => 
+                        const updated = messages.map(m => 
                             (!m.groupId && m.from === selectedChatTarget.id && m.to === user.id) ? { ...m, read: true } : m
-                        ));
+                        );
+                        setMessages(updated);
+                        if (rtdb) rtdb.ref('risala_messages').set(updated);
                     }
                 }
             }, [selectedChatTarget, view, user, messages.length]);
@@ -1355,7 +1431,9 @@
                 };
                 
                 setLoginLogs(prev => [newLog, ...prev].slice(0, 50));
-                setUsers(prev => prev.map(u => u.id === found.id ? { ...u, ip: realIP, device: deviceInfo } : u));
+                const updatedUsers = users.map(u => u.id === found.id ? { ...u, ip: realIP, device: deviceInfo } : u);
+                setUsers(updatedUsers);
+                if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
                 setUser({ ...found, ip: realIP, device: deviceInfo });
                 localStorage.setItem('app_session_v_risala_unified_v2', JSON.stringify({ id: found.id }));
                 setView('home');
@@ -1390,14 +1468,18 @@
                     ip: realIP,
                     device: deviceInfo
                 };
-                setUsers(prev => [...prev, newUser]);
+                const updatedUsers = [...users, newUser];
+                setUsers(updatedUsers);
+                if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
                 setView('login');
                 return null;
             };
 
             const updateProfile = (newData) => {
-                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...newData } : u));
+                const updatedUsers = users.map(u => u.id === user.id ? { ...u, ...newData } : u);
+                setUsers(updatedUsers);
                 setUser(prev => ({ ...prev, ...newData }));
+                if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
             };
 
             const createPost = (content) => {
@@ -1412,7 +1494,12 @@
                     timestamp: new Date().toISOString(),
                     comments: []
                 };
-                setPosts(prev => [newPost, ...prev]);
+                const updatedPosts = [newPost, ...posts];
+                setPosts(updatedPosts);
+                // إرسال المنشور مباشرة إلى فايربيس ليظهر لجميع الأجهزة فوراً
+                if (rtdb) {
+                    rtdb.ref('risala_posts').set(updatedPosts);
+                }
             };
 
             const addComment = (postId, text, parentId = null) => {
@@ -1426,7 +1513,7 @@
                     profileColor: user.profileColor,
                     replies: []
                 };
-                setPosts(prev => prev.map(p => {
+                const updatedPosts = posts.map(p => {
                     if (p.id !== postId) return p;
                     if (!parentId) return { ...p, comments: [...(p.comments || []), newComment] };
                     return {
@@ -1435,11 +1522,15 @@
                             c.id === parentId ? { ...c, replies: [...(c.replies || []), newComment] } : c
                         )
                     };
-                }));
+                });
+                setPosts(updatedPosts);
+                if (rtdb) {
+                    rtdb.ref('risala_posts').set(updatedPosts);
+                }
             };
 
             const deleteComment = (postId, commentId, replyId = null) => {
-                setPosts(prev => prev.map(p => {
+                const updatedPosts = posts.map(p => {
                     if (p.id !== postId) return p;
                     if (!replyId) {
                         return { ...p, comments: (p.comments || []).filter(c => c.id !== commentId) };
@@ -1452,7 +1543,11 @@
                             })
                         };
                     }
-                }));
+                });
+                setPosts(updatedPosts);
+                if (rtdb) {
+                    rtdb.ref('risala_posts').set(updatedPosts);
+                }
             };
 
             const createGroup = (groupName, memberIds) => {
@@ -1468,8 +1563,13 @@
             };
 
             const deleteGroup = (groupId) => {
-                setGroups(prev => prev.filter(g => g.id !== groupId));
-                setMessages(prev => prev.filter(m => m.groupId !== groupId));
+                const updatedGroups = groups.filter(g => g.id !== groupId);
+                const updatedMsgs = messages.filter(m => m.groupId !== groupId);
+                setGroups(updatedGroups);
+                setMessages(updatedMsgs);
+                if (rtdb) {
+                    rtdb.ref('risala_messages').set(updatedMsgs);
+                }
                 if (selectedChatTarget?.id === groupId) {
                     setSelectedChatTarget(null);
                 }
@@ -1483,7 +1583,9 @@
                     status: 'pending',
                     time: new Date().toISOString()
                 };
-                setLoanRequests(prev => [newLoanReq, ...prev]);
+                const updatedLoans = [newLoanReq, ...loanRequests];
+                setLoanRequests(updatedLoans);
+                if (rtdb) rtdb.ref('risala_loans').set(updatedLoans);
                 setLoanModalAmount(null);
             };
 
@@ -1494,7 +1596,7 @@
                 const targetUserId = loan.userId;
                 const currentTime = new Date().toLocaleTimeString('ar-IQ');
 
-                setUsers(prev => prev.map(u => {
+                const updatedUsers = users.map(u => {
                     if (u.id === targetUserId) {
                         const newBal = Number(u.balance || 0) + Number(loan.amount);
                         const hist = {
@@ -1506,26 +1608,22 @@
                         return { ...u, balance: newBal, history: [...(u.history || []), hist] };
                     }
                     return u;
-                }));
+                });
+                setUsers(updatedUsers);
 
-                if (user?.id === targetUserId) {
-                    setUser(prev => ({
-                        ...prev,
-                        balance: Number(prev.balance || 0) + Number(loan.amount),
-                        history: [...(prev.history || []), {
-                            type: 'in',
-                            msg: `تمويل معتمد من الإدارة`,
-                            amount: loan.amount,
-                            time: currentTime
-                        }]
-                    }));
+                const updatedLoans = loanRequests.map(l => l.id === loanId ? { ...l, status: 'approved' } : l);
+                setLoanRequests(updatedLoans);
+
+                if (rtdb) {
+                    rtdb.ref('risala_users').set(updatedUsers);
+                    rtdb.ref('risala_loans').set(updatedLoans);
                 }
-
-                setLoanRequests(prev => prev.map(l => l.id === loanId ? { ...l, status: 'approved' } : l));
             };
 
             const handleRejectLoan = (loanId) => {
-                setLoanRequests(prev => prev.map(l => l.id === loanId ? { ...l, status: 'rejected' } : l));
+                const updatedLoans = loanRequests.map(l => l.id === loanId ? { ...l, status: 'rejected' } : l);
+                setLoanRequests(updatedLoans);
+                if (rtdb) rtdb.ref('risala_loans').set(updatedLoans);
             };
 
             const handleTransferCoins = (recipientUsername, amount) => {
@@ -1548,14 +1646,12 @@
                 }
 
                 const currentTime = new Date().toLocaleTimeString('ar-IQ');
-                
                 const updatedSenderBalance = user.role === 'admin' ? user.balance : Number(user.balance || 0) - amount;
                 const senderHistoryItem = { type: 'out', msg: `حوالة إلى @${recipientObj.username}`, amount, time: currentTime };
-
                 const updatedRecipientBalance = Number(recipientObj.balance || 0) + amount;
                 const recipientHistoryItem = { type: 'in', msg: `استلام من @${user.username}`, amount, time: currentTime };
 
-                setUsers(prev => prev.map(u => {
+                const updatedUsers = users.map(u => {
                     if (u.id === user.id) {
                         return { ...u, balance: updatedSenderBalance, history: [...(u.history || []), senderHistoryItem] };
                     }
@@ -1563,13 +1659,10 @@
                         return { ...u, balance: updatedRecipientBalance, history: [...(u.history || []), recipientHistoryItem] };
                     }
                     return u;
-                }));
+                });
 
-                setUser(prev => ({
-                    ...prev,
-                    balance: updatedSenderBalance,
-                    history: [...(prev.history || []), senderHistoryItem]
-                }));
+                setUsers(updatedUsers);
+                if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
 
                 return { success: true, msg: `تم إرسال ${amount.toFixed(2)} كوين إلى @${recipientObj.username} بنجاح` };
             };
@@ -1579,7 +1672,7 @@
                 const currentTime = new Date().toLocaleTimeString('ar-IQ');
                 const isAddition = deltaAmount > 0;
 
-                setUsers(prev => prev.map(u => {
+                const updatedUsers = users.map(u => {
                     if (u.id === targetUserId) {
                         const newBal = Math.max(0, Number(u.balance || 0) + deltaAmount);
                         const hist = {
@@ -1591,20 +1684,10 @@
                         return { ...u, balance: newBal, history: [...(u.history || []), hist] };
                     }
                     return u;
-                }));
+                });
 
-                if (user.id === targetUserId) {
-                    setUser(prev => ({
-                        ...prev,
-                        balance: Math.max(0, Number(prev.balance || 0) + deltaAmount),
-                        history: [...(prev.history || []), {
-                            type: isAddition ? 'in' : 'out',
-                            msg: `تعديل من المسؤول`,
-                            amount: Math.abs(deltaAmount),
-                            time: currentTime
-                        }]
-                    }));
-                }
+                setUsers(updatedUsers);
+                if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
             };
 
             const handleLogout = () => {
@@ -1612,6 +1695,12 @@
                 setSelectedChatTarget(null);
                 setView('login');
                 localStorage.removeItem('app_session_v_risala_unified_v2');
+            };
+
+            const handleDeletePost = (id) => {
+                const updatedPosts = posts.filter(item => item.id !== id);
+                setPosts(updatedPosts);
+                if (rtdb) rtdb.ref('risala_posts').set(updatedPosts);
             };
 
             if (!isLoaded) return null;
@@ -1783,16 +1872,26 @@
                                 )}
                                 {view === 'messages' && (
                                     <MessagesView 
-                                        users={users} currentUser={user} messages={messages} setMessages={setMessages} 
+                                        users={users} currentUser={user} messages={messages} 
+                                        setMessages={(newMsgs) => {
+                                            setMessages(newMsgs);
+                                            if (rtdb) rtdb.ref('risala_messages').set(newMsgs);
+                                        }} 
                                         groups={groups} createGroup={createGroup} deleteGroup={deleteGroup}
                                         selectedTarget={selectedChatTarget} setSelectedTarget={setSelectedChatTarget} 
                                     />
                                 )}
                                 {view === 'bank' && <BankView user={user} users={users} userLoans={loanRequests} onTransfer={handleTransferCoins} onOpenLoanModal={(amt) => setLoanModalAmount(amt)} />}
-                                {view === 'profile' && <ProfileView user={user} posts={posts} updateProfile={updateProfile} onDeletePost={(id) => setPosts(p => p.filter(item => item.id !== id))} onLogout={handleLogout} />}
+                                {view === 'profile' && <ProfileView user={user} posts={posts} updateProfile={updateProfile} onDeletePost={handleDeletePost} onLogout={handleLogout} />}
                                 {view === 'admin' && (
                                     <AdminView 
-                                        users={users} setUsers={setUsers} posts={posts} onDeletePost={(id) => setPosts(p => p.filter(item => item.id !== id))} 
+                                        users={users} 
+                                        setUsers={(updater) => {
+                                            const updated = typeof updater === 'function' ? updater(users) : updater;
+                                            setUsers(updated);
+                                            if (rtdb) rtdb.ref('risala_users').set(updated);
+                                        }} 
+                                        posts={posts} onDeletePost={handleDeletePost} 
                                         adminTab={adminTab} setAdminTab={setAdminTab} loginLogs={loginLogs} 
                                         onAdjustCoins={handleAdjustCoinsByAdmin}
                                         loanRequests={loanRequests} onApproveLoan={handleApproveLoan} onRejectLoan={handleRejectLoan}
