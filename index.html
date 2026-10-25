@@ -506,7 +506,7 @@
             };
 
             return (
-                <div className="bg-white rounded-[2.5rem] border border-gray-100 h-[calc(100vh-230px)] md:h-[calc(100vh-140px)] flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative">
+                <div className={`bg-white rounded-[2.5rem] border border-gray-100 flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative ${selectedTarget ? 'h-[calc(100vh-80px)] md:h-[calc(100vh-140px)]' : 'h-[calc(100vh-175px)] md:h-[calc(100vh-140px)]'}`}>
                     {/* نافذة إنشاء مجموعة جديدة */}
                     {showNewGroupModal && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-in zoom-in-95">
@@ -762,7 +762,7 @@
                                 </div>
 
                                 {/* حقل الإدخال مع منع إخفاء الكيبورد عبر form submit مع preventDefault */}
-                                <form onSubmit={handleSend} className="p-3 md:p-3.5 border-t flex gap-2 bg-white items-center">
+                                <form onSubmit={handleSend} className="p-3 md:p-3.5 border-t flex gap-2 bg-white items-center sticky bottom-0 z-20">
                                     <input 
                                         ref={inputRef}
                                         type="text" 
@@ -2060,8 +2060,8 @@
                         </main>
                     </div>
 
-                    {/* شريط الملاحة السفلي لشاشات الهواتف */}
-                    <div className="md:hidden fixed bottom-3 inset-x-3 z-[100]">
+                    {/* شريط الملاحة السفلي لشاشات الهواتف - يختفي تلقائياً فقط أثناء فتح محادثة ليتيح ظهور حقل الكتابة والكيبورد بشكل كامل */}
+                    <div className={`md:hidden fixed bottom-3 inset-x-3 z-[100] ${view === 'messages' && selectedChatTarget ? 'hidden' : 'block'}`}>
                         <nav className="h-16 glass-morphism rounded-2xl flex justify-around items-center px-2 shadow-2xl border border-gray-100">
                             <MobileNavItem iconName="Home" label="الرئيسية" active={view === 'home'} onClick={() => setView('home')} />
                             <MobileNavItem iconName="MessageSquare" label="الرسائل" active={view === 'messages'} onClick={() => setView('messages')} badge={unreadMessagesCount > 0 ? unreadMessagesCount : null} />
