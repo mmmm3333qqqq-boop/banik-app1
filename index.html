@@ -101,7 +101,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Firebase Configuration & Initialization
+        // مفاتيح مشروع Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBzthotcwzFkMHuJVG6EXf0mr6ZPnZpe8M",
             authDomain: "coeins-4b149.firebaseapp.com",
@@ -120,6 +120,8 @@
                 console.warn("Firebase initialization notice:", err);
             }
         }
+
+        const rtdb = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.database() : null;
 
         const { useState, useEffect, useMemo, useRef } = React;
 
@@ -163,7 +165,9 @@
             Wallet: "M20 7h-4V4c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM4 4h10v3H4V4zm16 16H4v-11h16v11zm-4-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z",
             Coins: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",
             ArrowDownLeft: "M17 7L7 17M7 17h10M7 17V7",
-            ArrowUpRight: "M7 17L17 7M17 7H7M17 7v10"
+            ArrowUpRight: "M7 17L17 7M17 7H7M17 7v10",
+            Image: "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm10.5 7l-5-6-4 5-3-3-4 5h16z",
+            Camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
         };
 
         const MotionIcon = ({ iconName, size = 20, className = "" }) => {
@@ -303,60 +307,224 @@
             );
         };
 
-        const HomeView = ({ posts, user, createPost, addComment, onDeleteComment, activeCommentPost, setActiveCommentPost, activeReplyToId, setActiveReplyToId }) => {
+        const HomeView = ({ posts, user, createPost, addComment, onDeleteComment, activeCommentPost, setActiveCommentPost, activeReplyToId, setActiveReplyToId, onOpenUserProfile }) => {
             const [text, setText] = useState('');
             const [commentText, setCommentText] = useState('');
+            const [postImage, setPostImage] = useState(null);
+            const fileInputRef = useRef(null);
+
+            const handleImageSelect = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDimension = 900;
+
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                        setPostImage(optimizedDataUrl);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            const handlePublish = () => {
+                if (!text.trim() && !postImage) return;
+                createPost(text, postImage);
+                setText('');
+                setPostImage(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            };
 
             return (
-                <div className="space-y-6 animate-in fade-in slide-in-bottom">
-                    <div className={`bg-white p-6 rounded-[2.5rem] border border-gray-100 ${UI_CONFIG.cardShadow}`}>
-                        <textarea placeholder="ما الذي ترغب في مشاركته اليوم؟" className="w-full p-4 bg-gray-50 rounded-2xl resize-none outline-none focus:ring-2 focus:ring-purple-200 transition-all h-24 text-gray-700 font-bold text-sm" value={text} onChange={e => setText(e.target.value)} />
-                        <div className="flex justify-between items-center mt-3">
-                            <span className="text-[11px] text-gray-400 font-bold">مشاركة عامة</span>
-                            <button type="button" disabled={!text.trim()} onClick={() => { createPost(text); setText(''); }} className="group px-7 py-3 bg-[#2E1A47] text-white rounded-xl font-black shadow-lg transform active:scale-95 transition-all flex items-center gap-2 text-sm disabled:opacity-40">
-                                <MotionIcon iconName="Send" size={17} className="rotate-180 group-hover:-translate-x-1" />
+                <div className="space-y-5 animate-in fade-in slide-in-bottom scroll-smooth">
+                    {/* بطاقة إنشاء المنشور */}
+                    <div className={`bg-white p-5 md:p-6 rounded-[2.2rem] border border-gray-100 ${UI_CONFIG.cardShadow} transition-all`}>
+                        <textarea 
+                            placeholder="ما الذي ترغب في مشاركته اليوم؟" 
+                            className="w-full p-4 bg-gray-50 rounded-2xl resize-none outline-none focus:ring-2 focus:ring-purple-200 transition-all h-24 text-gray-700 font-bold text-sm leading-relaxed" 
+                            value={text} 
+                            onChange={e => setText(e.target.value)} 
+                        />
+
+                        {postImage && (
+                            <div className="relative mt-3 rounded-2xl overflow-hidden border border-purple-100 max-h-64 bg-black/5 flex items-center justify-center group animate-in zoom-in-95">
+                                <img src={postImage} alt="المعاينة" className="max-h-64 w-full object-cover rounded-2xl" />
+                                <button 
+                                    type="button" 
+                                    onClick={() => { setPostImage(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                    className="absolute top-2 left-2 p-2 bg-red-600/90 hover:bg-red-700 text-white rounded-xl shadow-lg transition-transform active:scale-95"
+                                    title="إزالة الصورة"
+                                >
+                                    <MotionIcon iconName="X" size={16} />
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
+                            <div className="flex items-center gap-2">
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    ref={fileInputRef} 
+                                    onChange={handleImageSelect} 
+                                    className="hidden" 
+                                    id="post-img-upload" 
+                                />
+                                <label 
+                                    htmlFor="post-img-upload" 
+                                    className="cursor-pointer px-3.5 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-all flex items-center gap-1.5 text-xs font-black"
+                                >
+                                    <MotionIcon iconName="Image" size={16} />
+                                    <span>إضافة صورة</span>
+                                </label>
+                                <span className="text-[11px] text-gray-400 font-bold hidden sm:inline">مشاركة عامة</span>
+                            </div>
+
+                            <button 
+                                type="button" 
+                                disabled={!text.trim() && !postImage} 
+                                onClick={handlePublish} 
+                                className="group px-6 py-2.5 bg-[#2E1A47] text-white rounded-xl font-black shadow-lg transform active:scale-95 transition-all flex items-center gap-2 text-sm disabled:opacity-40"
+                            >
+                                <MotionIcon iconName="Send" size={16} className="rotate-180 group-hover:-translate-x-1" />
                                 <span>نشر</span>
                             </button>
                         </div>
                     </div>
-                    <div className="space-y-6">
+
+                    {/* قائمة المنشورات */}
+                    <div className="space-y-5">
                         {posts.map((post) => {
                             const isAdminPost = post.authorRole === 'admin' || post.authorId === 'admin-1';
                             return (
-                                <div key={post.id} className={`bg-white p-7 rounded-[2.5rem] border-2 relative overflow-hidden animate-in zoom-in-95 ${isAdminPost ? 'border-amber-400 shadow-[0_15px_40px_rgba(245,158,11,0.12)] bg-gradient-to-b from-white to-amber-50/20' : 'border-gray-50 shadow-sm'}`}>
+                                <div key={post.id} className={`bg-white p-6 md:p-7 rounded-[2.2rem] border relative overflow-hidden transition-all duration-300 ${isAdminPost ? 'border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.1)] bg-gradient-to-b from-white to-amber-50/20' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
                                     {isAdminPost && <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-400 via-yellow-600 to-amber-400"></div>}
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className={`w-13 h-13 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-md p-3 ${isAdminPost ? UI_CONFIG.goldGradient : 'bg-[#2E1A47]'}`} style={{ backgroundColor: !isAdminPost ? (post.profileColor || '#2E1A47') : undefined }}>
-                                            {isAdminPost ? <MotionIcon iconName="Crown" size={26} className="animate-icon-float" /> : String(post.authorName)?.[0]}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className={`font-black text-base tracking-tight ${isAdminPost ? 'text-amber-700' : 'text-[#2E1A47]'}`}>{String(post.authorName)}</h4>
-                                                {isAdminPost && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-amber-200">إدارة</span>}
+                                    
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div 
+                                            onClick={() => onOpenUserProfile(post.authorId)}
+                                            className="flex items-center gap-3.5 cursor-pointer group"
+                                            title="عرض الملف الشخصي"
+                                        >
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md overflow-hidden group-hover:scale-105 transition-transform ${isAdminPost ? UI_CONFIG.goldGradient : 'bg-[#2E1A47]'}`} style={{ backgroundColor: !isAdminPost ? (post.profileColor || '#2E1A47') : undefined }}>
+                                                {post.avatar ? (
+                                                    <img src={post.avatar} alt={post.authorName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    isAdminPost ? <MotionIcon iconName="Crown" size={24} className="animate-icon-float" /> : String(post.authorName)?.[0]
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold">
-                                                <MotionIcon iconName="Clock" size={12} />
-                                                <span>{new Date(post.timestamp).toLocaleString('ar-IQ')}</span>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className={`font-black text-sm md:text-base tracking-tight group-hover:text-purple-700 transition-colors ${isAdminPost ? 'text-amber-700' : 'text-[#2E1A47]'}`}>
+                                                        {String(post.authorName)}
+                                                    </h4>
+                                                    {isAdminPost && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-amber-200">إدارة</span>}
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold mt-0.5">
+                                                    <MotionIcon iconName="Clock" size={11} />
+                                                    <span>{new Date(post.timestamp).toLocaleString('ar-IQ')}</span>
+                                                </div>
                                             </div>
                                         </div>
+
+                                        <button 
+                                            type="button" 
+                                            onClick={() => onOpenUserProfile(post.authorId)}
+                                            className="text-xs font-black text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                                        >
+                                            <MotionIcon iconName="User" size={13} />
+                                            <span className="hidden sm:inline">البروفايل</span>
+                                        </button>
                                     </div>
-                                    <p className={`leading-relaxed whitespace-pre-wrap px-1 mb-5 font-bold ${isAdminPost ? 'text-[#2E1A47] text-base' : 'text-gray-700 text-sm'}`}>{String(post.content)}</p>
-                                    <div className="flex items-center gap-4 border-t border-gray-100 pt-4">
-                                        <button type="button" onClick={() => { setActiveCommentPost(activeCommentPost === post.id ? null : post.id); setActiveReplyToId(null); }} className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all font-black text-xs ${activeCommentPost === post.id ? 'bg-[#2E1A47] text-white shadow-lg' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
+
+                                    {post.content && (
+                                        <p className={`leading-relaxed whitespace-pre-wrap px-1 mb-4 font-bold ${isAdminPost ? 'text-[#2E1A47] text-base' : 'text-gray-700 text-sm'}`}>
+                                            {String(post.content)}
+                                        </p>
+                                    )}
+
+                                    {post.image && (
+                                        <div className="mb-4 rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center max-h-[460px]">
+                                            <img 
+                                                src={post.image} 
+                                                alt="محتوى المنشور" 
+                                                className="w-full max-h-[460px] object-contain rounded-2xl" 
+                                                loading="lazy" 
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center justify-between border-t border-gray-100 pt-3.5">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => { setActiveCommentPost(activeCommentPost === post.id ? null : post.id); setActiveReplyToId(null); }} 
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black text-xs ${activeCommentPost === post.id ? 'bg-[#2E1A47] text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                                        >
                                             <MotionIcon iconName="MessagesSquare" size={15} /> 
                                             <span>{post.comments?.length || 0} تعليقات</span>
                                         </button>
+
+                                        <button 
+                                            type="button" 
+                                            onClick={() => onOpenUserProfile(post.authorId)}
+                                            className="text-[11px] text-gray-400 font-bold hover:text-purple-600 transition-colors flex items-center gap-1"
+                                        >
+                                            <span>صاحب المنشور</span>
+                                            <MotionIcon iconName="ChevronRight" size={13} className="rotate-180" />
+                                        </button>
                                     </div>
+
                                     {activeCommentPost === post.id && (
-                                        <div className="mt-5 animate-in slide-in-bottom">
+                                        <div className="mt-4 pt-3 border-t border-gray-100 animate-in slide-in-bottom">
                                             <div className="space-y-3 mb-4 max-h-72 overflow-y-auto custom-scrollbar">
                                                 {(post.comments || []).map(comment => (
                                                     <div key={comment.id} className="space-y-2 group">
                                                         <div className="flex gap-2.5">
-                                                            <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-black shadow-sm" style={{ backgroundColor: comment.profileColor || '#8B5CF6' }}>{String(comment.authorName)?.[0]}</div>
+                                                            <div 
+                                                                onClick={() => onOpenUserProfile(comment.authorId)}
+                                                                className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-black shadow-sm overflow-hidden cursor-pointer hover:scale-105 transition-transform" 
+                                                                style={{ backgroundColor: comment.profileColor || '#8B5CF6' }}
+                                                            >
+                                                                {comment.avatar ? (
+                                                                    <img src={comment.avatar} alt={comment.authorName} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    String(comment.authorName)?.[0]
+                                                                )}
+                                                            </div>
                                                             <div className="bg-gray-50 p-3.5 rounded-2xl rounded-tr-none flex-1 border border-gray-100 shadow-sm relative">
                                                                 <div className="flex justify-between items-center mb-1">
-                                                                    <span className="text-[11px] font-black text-[#2E1A47]">{String(comment.authorName)}</span>
+                                                                    <span 
+                                                                        onClick={() => onOpenUserProfile(comment.authorId)}
+                                                                        className="text-[11px] font-black text-[#2E1A47] cursor-pointer hover:underline"
+                                                                    >
+                                                                        {String(comment.authorName)}
+                                                                    </span>
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[9px] text-gray-400">{new Date(comment.timestamp).toLocaleTimeString('ar-IQ')}</span>
                                                                         {(comment.authorId === user.id || user.role === 'admin') && (
@@ -379,10 +547,25 @@
                                                         </div>
                                                         {(comment.replies || []).map(reply => (
                                                             <div key={reply.id} className="flex gap-2.5 mr-10 animate-in fade-in slide-in-bottom group">
-                                                                <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-[9px] font-black shadow-sm" style={{ backgroundColor: reply.profileColor || '#2E1A47' }}>{String(reply.authorName)?.[0]}</div>
+                                                                <div 
+                                                                    onClick={() => onOpenUserProfile(reply.authorId)}
+                                                                    className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-[9px] font-black shadow-sm overflow-hidden cursor-pointer" 
+                                                                    style={{ backgroundColor: reply.profileColor || '#2E1A47' }}
+                                                                >
+                                                                    {reply.avatar ? (
+                                                                        <img src={reply.avatar} alt={reply.authorName} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        String(reply.authorName)?.[0]
+                                                                    )}
+                                                                </div>
                                                                 <div className="bg-purple-50/70 p-3 rounded-2xl rounded-tr-none flex-1 border border-purple-100/50 text-xs text-purple-900 font-bold relative">
                                                                     <div className="flex justify-between items-center mb-1">
-                                                                        <span className="text-[10px] font-black text-[#2E1A47]">{String(reply.authorName)}</span>
+                                                                        <span 
+                                                                            onClick={() => onOpenUserProfile(reply.authorId)}
+                                                                            className="text-[10px] font-black text-[#2E1A47] cursor-pointer hover:underline"
+                                                                        >
+                                                                            {String(reply.authorName)}
+                                                                        </span>
                                                                         {(reply.authorId === user.id || user.role === 'admin') && (
                                                                             <button 
                                                                                 type="button" 
@@ -402,9 +585,20 @@
                                                 ))}
                                             </div>
                                             <div className="flex gap-2">
-                                                <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && (addComment(post.id, commentText, activeReplyToId), setCommentText(''), setActiveReplyToId(null))} placeholder={activeReplyToId ? "اكتب ردك..." : "اكتب تعليقك..."} className="flex-1 bg-gray-100 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-purple-200 font-bold" />
-                                                <button type="button" onClick={() => { addComment(post.id, commentText, activeReplyToId); setCommentText(''); setActiveReplyToId(null); }} className="px-4 bg-[#2E1A47] text-white rounded-xl shadow-lg active:scale-95 transition-all">
-                                                    <MotionIcon iconName="Send" size={16} className="rotate-180" />
+                                                <input 
+                                                    type="text" 
+                                                    value={commentText} 
+                                                    onChange={e => setCommentText(e.target.value)} 
+                                                    onKeyDown={e => e.key === 'Enter' && (addComment(post.id, commentText, activeReplyToId), setCommentText(''), setActiveReplyToId(null))} 
+                                                    placeholder={activeReplyToId ? "اكتب ردك..." : "اكتب تعليقك..."} 
+                                                    className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-200 font-bold" 
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => { addComment(post.id, commentText, activeReplyToId); setCommentText(''); setActiveReplyToId(null); }} 
+                                                    className="px-4 bg-[#2E1A47] text-white rounded-xl shadow-md active:scale-95 transition-all"
+                                                >
+                                                    <MotionIcon iconName="Send" size={15} className="rotate-180" />
                                                 </button>
                                             </div>
                                         </div>
@@ -429,7 +623,6 @@
             const chatContainerRef = useRef(null);
             const inputRef = useRef(null);
 
-            // النزول التلقائي الفوري والمؤكد إلى أسفل المحادثة كما في تطبيقات المراسلة
             const scrollToBottom = (behavior = "smooth") => {
                 requestAnimationFrame(() => {
                     if (chatContainerRef.current) {
@@ -444,12 +637,9 @@
                 });
             };
 
-            // النزول لأسفل المحادثة عند وصول رسائل جديدة أو تغيير الهدف أو عند فتح الشاشة
             useEffect(() => {
                 if (selectedTarget) {
-                    // نزول فوري أولاً لضمان عدم بقاء المحادثة بالأعلى
                     scrollToBottom("auto");
-                    // تأكيد النزول بعد اكتمال رسم العناصر
                     const t = setTimeout(() => scrollToBottom("smooth"), 80);
                     return () => clearTimeout(t);
                 }
@@ -485,11 +675,8 @@
                 }
             }, [messages, selectedTarget, currentUser]);
 
-            // إرسال الرسالة مع النزول التلقائي السلس إلى أسفل المحادثة فوراً
             const handleSend = async (e) => {
-                if (e) {
-                    e.preventDefault();
-                }
+                if (e) e.preventDefault();
                 const textToSend = msg.trim();
                 if (!textToSend || !selectedTarget || isSending) return;
 
@@ -538,7 +725,6 @@
 
             return (
                 <div className={`bg-white rounded-[2.5rem] border border-gray-100 flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative w-full ${selectedTarget ? 'h-[calc(100vh-85px)] md:h-[calc(100vh-130px)]' : 'h-[calc(100vh-175px)] md:h-[calc(100vh-130px)]'}`}>
-                    {/* نافذة إنشاء مجموعة جديدة */}
                     {showNewGroupModal && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-in zoom-in-95">
                             <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl border">
@@ -589,7 +775,6 @@
                         </div>
                     )}
 
-                    {/* القائمة الجانبية للرسائل */}
                     <div className={`w-full md:w-80 border-l flex flex-col bg-gray-50/30 h-full ${selectedTarget ? 'hidden md:flex' : 'flex'}`}>
                         <div className="p-5 bg-white border-b space-y-3">
                             <div className="flex items-center justify-between">
@@ -630,7 +815,9 @@
                                                 onClick={() => { setSelectedTarget({ ...u, isGroup: false }); setSearchQuery(''); }} 
                                                 className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 bg-white border border-gray-100'}`}
                                             >
-                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-sm" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>{String(u.name)?.[0]}</div>
+                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-sm overflow-hidden" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>
+                                                    {u.avatar ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" /> : String(u.name)?.[0]}
+                                                </div>
                                                 <div className="text-right flex-1 overflow-hidden">
                                                     <p className="font-black text-xs truncate">{String(u.name)}</p>
                                                     <p className={`text-[10px] font-bold ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'text-purple-200' : 'text-gray-400'}`}>@{String(u.username)}</p>
@@ -675,7 +862,9 @@
                                                         onClick={() => setSelectedTarget({ ...u, isGroup: false })} 
                                                         className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 bg-white border border-gray-100/70'}`}
                                                     >
-                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-sm" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>{String(u.name)?.[0]}</div>
+                                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-sm overflow-hidden" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>
+                                                            {u.avatar ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" /> : String(u.name)?.[0]}
+                                                        </div>
                                                         <div className="text-right flex-1 overflow-hidden">
                                                             <p className="font-black text-xs truncate">{String(u.name)}</p>
                                                             <p className={`text-[9px] font-bold ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'text-purple-200' : 'text-gray-400'}`}>@{String(u.username)}</p>
@@ -697,11 +886,9 @@
                         </div>
                     </div>
 
-                    {/* منطقة الدردشة المفتوحة - مصممة بهندسة تطبيقات المراسلة الحديثة */}
                     <div className={`flex-1 flex flex-col bg-white h-full min-h-0 ${!selectedTarget ? 'hidden md:flex items-center justify-center opacity-40' : 'flex'}`}>
                         {selectedTarget ? (
                             <div className="flex flex-col h-full w-full min-h-0 relative">
-                                {/* ترويسة المحادثة العلوية الثابتة */}
                                 <div className="p-3 md:p-3.5 border-b flex items-center justify-between bg-gray-50/90 backdrop-blur-sm flex-shrink-0 z-10">
                                     <div className="flex items-center gap-2.5">
                                         <button 
@@ -713,8 +900,12 @@
                                             <MotionIcon iconName="ChevronRight" size={18} />
                                             <span>رجوع</span>
                                         </button>
-                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shadow-md flex-shrink-0" style={{ backgroundColor: selectedTarget.isGroup ? '#8B5CF6' : (selectedTarget.profileColor || '#2E1A47') }}>
-                                            {selectedTarget.isGroup ? <MotionIcon iconName="Users" size={18} /> : String(selectedTarget.name)?.[0]}
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shadow-md flex-shrink-0 overflow-hidden" style={{ backgroundColor: selectedTarget.isGroup ? '#8B5CF6' : (selectedTarget.profileColor || '#2E1A47') }}>
+                                            {selectedTarget.isGroup ? (
+                                                <MotionIcon iconName="Users" size={18} />
+                                            ) : (
+                                                selectedTarget.avatar ? <img src={selectedTarget.avatar} alt={selectedTarget.name} className="w-full h-full object-cover" /> : String(selectedTarget.name)?.[0]
+                                            )}
                                         </div>
                                         <div>
                                             <h4 className="font-black text-sm text-[#2E1A47] leading-tight">
@@ -752,7 +943,6 @@
                                     </div>
                                 </div>
                                 
-                                {/* منطقة المحادثة مع تمرير سلس ونزول تلقائي لأسفل الرسائل دون أي توقف */}
                                 <div 
                                     ref={chatContainerRef} 
                                     className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar bg-[#FDFCF8]/50 overscroll-contain"
@@ -793,7 +983,6 @@
                                     <div ref={chatEndRef} className="h-2 w-full flex-shrink-0" />
                                 </div>
 
-                                {/* تنبيه عند وجود خطأ في الإرسال */}
                                 {sendError && (
                                     <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-black border-t border-red-100 flex items-center justify-between animate-shake flex-shrink-0">
                                         <span>{sendError}</span>
@@ -803,7 +992,6 @@
                                     </div>
                                 )}
 
-                                {/* حقل الإدخال الثابت بأسفل المحادثة تماماً مع زر الإرسال السلس */}
                                 <form 
                                     onSubmit={handleSend} 
                                     className="p-2.5 md:p-3.5 border-t flex gap-2 bg-white items-center flex-shrink-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]"
@@ -849,7 +1037,6 @@
             const [amount, setAmount] = useState('');
             const [feedback, setFeedback] = useState(null);
 
-            // مطابقة تامة ودقيقة فقط لاسم المستخدم دون أي مقترحات عشوائية
             const exactMatchedUser = useMemo(() => {
                 const clean = recipient.trim().replace(/^@/, '').toLowerCase();
                 if (!clean) return null;
@@ -922,12 +1109,15 @@
                                 />
                             </div>
 
-                            {/* تأكيد الشخص المطلوب فقط دون أي اقتراحات أخرى */}
                             {exactMatchedUser && (
                                 <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-center justify-between animate-in zoom-in-95">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-sm" style={{ backgroundColor: exactMatchedUser.profileColor || '#2E1A47' }}>
-                                            {String(exactMatchedUser.name)?.[0]}
+                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-sm overflow-hidden" style={{ backgroundColor: exactMatchedUser.profileColor || '#2E1A47' }}>
+                                            {exactMatchedUser.avatar ? (
+                                                <img src={exactMatchedUser.avatar} alt={exactMatchedUser.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                String(exactMatchedUser.name)?.[0]
+                                            )}
                                         </div>
                                         <div>
                                             <p className="font-black text-xs text-[#2E1A47]">{exactMatchedUser.name}</p>
@@ -1041,17 +1231,71 @@
             const [name, setName] = useState(user?.name || '');
             const [bio, setBio] = useState(user?.bio || '');
             const [color, setColor] = useState(user?.profileColor || '#2E1A47');
+            const [avatar, setAvatar] = useState(user?.avatar || null);
             const [password, setPassword] = useState(''); 
+            const avatarInputRef = useRef(null);
             const userPosts = useMemo(() => posts.filter(p => p.authorId === user?.id), [posts, user]);
+
+            const handleAvatarSelect = (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !file.type.startsWith('image/')) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const size = 300; // حجم مربع مثالي وخفيف للأفاتار
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // اقتصاص الصورة بشكل مربع في المنتصف (Center-Crop)
+                        const minSide = Math.min(img.width, img.height);
+                        const sx = (img.width - minSide) / 2;
+                        const sy = (img.height - minSide) / 2;
+                        
+                        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+                        const compressedAvatar = canvas.toDataURL('image/jpeg', 0.8);
+                        setAvatar(compressedAvatar);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
 
             return (
                 <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-bottom pb-28">
                     <div className="bg-white rounded-[3rem] overflow-hidden border shadow-sm relative">
-                        <div className="h-44 relative transition-colors duration-500" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
-                            <div className="absolute -bottom-10 right-10 w-32 h-32 rounded-[2.5rem] bg-white p-1.5 shadow-2xl">
-                                <div className="w-full h-full rounded-[2.2rem] flex items-center justify-center text-white text-4xl font-black shadow-inner" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
-                                    {String(user?.name)?.[0]}
+                        <div className="h-44 relative transition-colors duration-500" style={{ backgroundColor: color || '#2E1A47' }}>
+                            <div className="absolute -bottom-10 right-10 w-32 h-32 rounded-[2.5rem] bg-white p-1.5 shadow-2xl relative group">
+                                <div className="w-full h-full rounded-[2.2rem] flex items-center justify-center text-white text-4xl font-black shadow-inner overflow-hidden relative" style={{ backgroundColor: color || '#2E1A47' }}>
+                                    {avatar ? (
+                                        <img src={avatar} alt={user?.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        String(name || user?.name)?.[0]
+                                    )}
+                                    {isEditing && (
+                                        <label 
+                                            htmlFor="avatar-upload" 
+                                            className="absolute inset-0 bg-black/40 hover:bg-black/60 flex flex-col items-center justify-center text-white cursor-pointer transition-all duration-300"
+                                            title="تغيير صورة البروفايل"
+                                        >
+                                            <MotionIcon iconName="Camera" size={24} />
+                                            <span className="text-[10px] font-bold mt-1">تغيير الصورة</span>
+                                        </label>
+                                    )}
                                 </div>
+                                {isEditing && (
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        id="avatar-upload" 
+                                        ref={avatarInputRef} 
+                                        onChange={handleAvatarSelect} 
+                                        className="hidden" 
+                                    />
+                                )}
                             </div>
                         </div>
                         <div className="pt-16 p-8">
@@ -1062,7 +1306,7 @@
                                             <h2 className="text-3xl font-black text-[#2E1A47] tracking-tight">{String(user?.name)}</h2>
                                             <p className="text-purple-600 font-bold text-sm mt-0.5">@{String(user?.username)}</p>
                                         </div>
-                                        <button onClick={() => setIsEditing(true)} className="p-3.5 bg-purple-50 text-purple-700 rounded-2xl hover:scale-105 transition-all shadow-sm">
+                                        <button onClick={() => { setIsEditing(true); setAvatar(user?.avatar || null); }} className="p-3.5 bg-purple-50 text-purple-700 rounded-2xl hover:scale-105 transition-all shadow-sm">
                                             <MotionIcon iconName="Settings" size={20}/>
                                         </button>
                                     </div>
@@ -1080,7 +1324,6 @@
                                         </div>
                                     </div>
 
-                                    {/* زر تسجيل الخروج في الملف الشخصي مخصص لشاشات الهاتف */}
                                     <div className="md:hidden pt-4 border-t border-gray-100">
                                         <button 
                                             type="button" 
@@ -1094,6 +1337,20 @@
                                 </div>
                             ) : (
                                 <div className="space-y-4 animate-in fade-in">
+                                    <div className="flex items-center justify-between bg-purple-50/50 p-3.5 rounded-2xl border border-purple-100">
+                                        <span className="text-xs font-black text-[#2E1A47]">صورة البروفايل</span>
+                                        <div className="flex gap-2">
+                                            <label htmlFor="avatar-upload" className="cursor-pointer px-3 py-1.5 bg-[#2E1A47] text-white rounded-xl text-xs font-bold hover:bg-purple-900 transition-colors flex items-center gap-1.5">
+                                                <MotionIcon iconName="Camera" size={14} />
+                                                <span>رفع صورة</span>
+                                            </label>
+                                            {avatar && (
+                                                <button type="button" onClick={() => setAvatar(null)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors">
+                                                    إزالة الصورة
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                     <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl border outline-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="الاسم الكامل" />
                                     <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl border h-24 outline-none resize-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="النبذة الشخصية" />
                                     <div className="relative group">
@@ -1105,10 +1362,10 @@
                                         ))}
                                     </div>
                                     <div className="flex gap-3">
-                                        <button onClick={() => { updateProfile({ name, bio, profileColor: color, ...(password.trim() && { password }) }); setIsEditing(false); setPassword(''); }} className="flex-1 py-4 bg-[#2E1A47] text-white rounded-2xl font-black shadow-xl active:scale-95 transition-all text-sm">
+                                        <button onClick={() => { updateProfile({ name, bio, profileColor: color, avatar, ...(password.trim() && { password }) }); setIsEditing(false); setPassword(''); }} className="flex-1 py-4 bg-[#2E1A47] text-white rounded-2xl font-black shadow-xl active:scale-95 transition-all text-sm">
                                             حفظ التعديلات
                                         </button>
-                                        <button onClick={() => setIsEditing(false)} className="px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm">إلغاء</button>
+                                        <button onClick={() => { setIsEditing(false); setAvatar(user?.avatar || null); }} className="px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm">إلغاء</button>
                                     </div>
                                 </div>
                             )}
@@ -1210,7 +1467,9 @@
                                     <div key={u.id} className="p-5 bg-gray-50/70 rounded-3xl border flex flex-col gap-4 hover:border-purple-200 transition-colors">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md p-3" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>{String(u.name)?.[0]}</div>
+                                                <div className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md p-1 overflow-hidden" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>
+                                                    {u.avatar ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-xl" /> : String(u.name)?.[0]}
+                                                </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <p className="font-black text-[#2E1A47] text-base">{String(u.name)}</p>
@@ -1234,7 +1493,6 @@
                                                         <button onClick={() => updateUser(u.id, { status: u.status === 'active' ? 'banned' : 'active' })} className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${u.status === 'active' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-green-600 text-white'}`}>
                                                             {u.status === 'active' ? 'حظر الحساب' : 'فك الحظر'}
                                                         </button>
-                                                        {/* إمكانية حذف المستخدم بشكل تام من النظام */}
                                                         <button 
                                                             type="button" 
                                                             onClick={() => onDeleteUserPermanently(u.id)} 
@@ -1415,39 +1673,36 @@
             const [adminTab, setAdminTab] = useState('users');
             const [loanModalAmount, setLoanModalAmount] = useState(null);
 
+            const [viewingProfileUser, setViewingProfileUser] = useState(null);
+
             const unreadMessagesCount = useMemo(() => {
                 if (!user) return 0;
                 return messages.filter(m => !m.groupId && m.to === user.id && !m.read).length;
             }, [messages, user]);
 
-            // الربط الحي مع Firebase Realtime Database
-            const rtdb = useMemo(() => {
-                if (typeof firebase !== 'undefined' && firebase.apps.length) {
-                    try {
-                        return firebase.database();
-                    } catch (e) {
-                        console.warn("RTDB initialization error:", e);
-                    }
+            const handleOpenUserProfile = (authorId) => {
+                if (!authorId) return;
+                if (user && authorId === user.id) {
+                    setView('profile');
+                    return;
                 }
-                return null;
-            }, []);
+                const targetUser = users.find(u => u.id === authorId);
+                if (targetUser) {
+                    setViewingProfileUser(targetUser);
+                }
+            };
 
-            // تحويل وتوحيد قراءة بيانات الرسائل سواء من الكائنات أو المصفوفات القديمة
             const parseFirebaseMessages = (val) => {
                 if (!val) return [];
-                if (Array.isArray(val)) {
-                    return val.filter(Boolean);
-                }
-                return Object.entries(val).map(([key, item]) => {
-                    if (!item || typeof item !== 'object') return null;
-                    return {
-                        ...item,
-                        id: item.id || key
-                    };
-                }).filter(Boolean);
+                if (Array.isArray(val)) return val.filter(Boolean);
+                return Object.entries(val).map(([k, v]) => ({
+                    ...v,
+                    id: v.id || k
+                })).filter(Boolean);
             };
 
             useEffect(() => {
+                const storageVersion = 'v_risala_unified_v2';
                 const safeParse = (key, fallback) => {
                     try {
                         const item = localStorage.getItem(key);
@@ -1455,16 +1710,15 @@
                     } catch (e) { return fallback; }
                 };
 
-                const storageVersion = 'v_risala_unified_v2';
-                const savedUsers = safeParse(`app_users_${storageVersion}`, []);
-                const savedPosts = safeParse(`app_posts_${storageVersion}`, []);
-                const savedMsgs = safeParse(`app_msgs_${storageVersion}`, []);
-                const savedGroups = safeParse(`app_groups_${storageVersion}`, []);
-                const savedLoans = safeParse(`app_loans_${storageVersion}`, []);
-                const savedLogs = safeParse(`app_logs_${storageVersion}`, []);
-                
-                if (savedUsers.length === 0) {
-                    savedUsers.push({
+                let initialUsers = safeParse(`app_users_${storageVersion}`, []);
+                const initialPosts = safeParse(`app_posts_${storageVersion}`, []);
+                const initialMsgs = safeParse(`app_msgs_${storageVersion}`, []);
+                const initialGroups = safeParse(`app_groups_${storageVersion}`, []);
+                const initialLoans = safeParse(`app_loans_${storageVersion}`, []);
+                const initialLogs = safeParse(`app_logs_${storageVersion}`, []);
+
+                if (initialUsers.length === 0) {
+                    initialUsers = [{
                         id: 'admin-1',
                         name: 'مدير النظام',
                         username: 'admin',
@@ -1480,76 +1734,20 @@
                         bio: 'إدارة تطبيق رسالة ومتابعة المدفوعات والطلبات.',
                         ip: '127.0.0.1',
                         device: 'النظام'
-                    });
+                    }];
                 }
 
-                setUsers(savedUsers);
-                setPosts(savedPosts);
-                setMessages(savedMsgs);
-                setGroups(savedGroups);
-                setLoanRequests(savedLoans);
-                setLoginLogs(savedLogs);
-
-                // الاستماع اللحظي للبيانات مع تنظيف المستمعين بدقة
-                let unsubPosts = null;
-                let unsubUsers = null;
-                let unsubMsgs = null;
-                let unsubLoans = null;
-
-                if (rtdb) {
-                    const postsRef = rtdb.ref('risala_posts');
-                    const postsHandler = (snapshot) => {
-                        const val = snapshot.val();
-                        if (val) {
-                            const cloudPosts = Array.isArray(val) ? val : Object.values(val);
-                            setPosts(cloudPosts);
-                            localStorage.setItem(`app_posts_${storageVersion}`, JSON.stringify(cloudPosts));
-                        }
-                    };
-                    postsRef.on('value', postsHandler);
-                    unsubPosts = () => postsRef.off('value', postsHandler);
-
-                    const usersRef = rtdb.ref('risala_users');
-                    const usersHandler = (snapshot) => {
-                        const val = snapshot.val();
-                        if (val) {
-                            const cloudUsers = Array.isArray(val) ? val : Object.values(val);
-                            setUsers(cloudUsers);
-                            localStorage.setItem(`app_users_${storageVersion}`, JSON.stringify(cloudUsers));
-                        }
-                    };
-                    usersRef.on('value', usersHandler);
-                    unsubUsers = () => usersRef.off('value', usersHandler);
-
-                    // الاستماع للرسائل مع معالجة البيانات الفردية وعدم السماح لـ LocalStorage بمسح أحدث الرسائل
-                    const msgsRef = rtdb.ref('risala_messages');
-                    const msgsHandler = (snapshot) => {
-                        const val = snapshot.val();
-                        const parsed = parseFirebaseMessages(val);
-                        parsed.sort((a, b) => new Date(a.time || 0) - new Date(b.time || 0));
-                        setMessages(parsed);
-                        localStorage.setItem(`app_msgs_${storageVersion}`, JSON.stringify(parsed));
-                    };
-                    msgsRef.on('value', msgsHandler);
-                    unsubMsgs = () => msgsRef.off('value', msgsHandler);
-
-                    const loansRef = rtdb.ref('risala_loans');
-                    const loansHandler = (snapshot) => {
-                        const val = snapshot.val();
-                        if (val) {
-                            const cloudLoans = Array.isArray(val) ? val : Object.values(val);
-                            setLoanRequests(cloudLoans);
-                            localStorage.setItem(`app_loans_${storageVersion}`, JSON.stringify(cloudLoans));
-                        }
-                    };
-                    loansRef.on('value', loansHandler);
-                    unsubLoans = () => loansRef.off('value', loansHandler);
-                }
+                setUsers(initialUsers);
+                setPosts(initialPosts);
+                setMessages(initialMsgs);
+                setGroups(initialGroups);
+                setLoanRequests(initialLoans);
+                setLoginLogs(initialLogs);
 
                 try {
                     const session = JSON.parse(localStorage.getItem(`app_session_${storageVersion}`));
                     if (session) {
-                        const found = savedUsers.find(u => u.id === session.id && u.status === 'active');
+                        const found = initialUsers.find(u => u.id === session.id && u.status === 'active');
                         if (found) {
                             setUser(found);
                             setView('home');
@@ -1557,85 +1755,106 @@
                         }
                     }
                 } catch(e) {}
+
+                if (rtdb) {
+                    rtdb.ref('risala_users').on('value', snap => {
+                        const data = snap.val();
+                        if (data) {
+                            const list = Array.isArray(data) ? data : Object.values(data);
+                            setUsers(list);
+                            localStorage.setItem(`app_users_${storageVersion}`, JSON.stringify(list));
+                        } else {
+                            rtdb.ref('risala_users').set(initialUsers);
+                        }
+                    });
+
+                    rtdb.ref('risala_posts').on('value', snap => {
+                        const data = snap.val();
+                        if (data) {
+                            const list = Array.isArray(data) ? data : Object.values(data);
+                            setPosts(list);
+                            localStorage.setItem(`app_posts_${storageVersion}`, JSON.stringify(list));
+                        }
+                    });
+
+                    rtdb.ref('risala_messages').on('value', snap => {
+                        const data = snap.val();
+                        if (data) {
+                            const list = parseFirebaseMessages(data);
+                            list.sort((a, b) => new Date(a.time || 0) - new Date(b.time || 0));
+                            setMessages(list);
+                            localStorage.setItem(`app_msgs_${storageVersion}`, JSON.stringify(list));
+                        }
+                    });
+
+                    rtdb.ref('risala_groups').on('value', snap => {
+                        const data = snap.val();
+                        if (data) {
+                            const list = Array.isArray(data) ? data : Object.values(data);
+                            setGroups(list);
+                            localStorage.setItem(`app_groups_${storageVersion}`, JSON.stringify(list));
+                        }
+                    });
+
+                    rtdb.ref('risala_loans').on('value', snap => {
+                        const data = snap.val();
+                        if (data) {
+                            const list = Array.isArray(data) ? data : Object.values(data);
+                            setLoanRequests(list);
+                            localStorage.setItem(`app_loans_${storageVersion}`, JSON.stringify(list));
+                        }
+                    });
+                }
+
                 setIsLoaded(true);
 
                 return () => {
-                    if (unsubPosts) unsubPosts();
-                    if (unsubUsers) unsubUsers();
-                    if (unsubMsgs) unsubMsgs();
-                    if (unsubLoans) unsubLoans();
-                };
-            }, [rtdb]);
-
-            // حفظ الحالة محلياً فقط كنسخة استرجاعية دون كتابة كاملة على Firebase
-            useEffect(() => {
-                if (isLoaded) {
-                    const storageVersion = 'v_risala_unified_v2';
-                    localStorage.setItem(`app_users_${storageVersion}`, JSON.stringify(users));
-                    localStorage.setItem(`app_posts_${storageVersion}`, JSON.stringify(posts));
-                    localStorage.setItem(`app_msgs_${storageVersion}`, JSON.stringify(messages));
-                    localStorage.setItem(`app_groups_${storageVersion}`, JSON.stringify(groups));
-                    localStorage.setItem(`app_loans_${storageVersion}`, JSON.stringify(loanRequests));
-                    localStorage.setItem(`app_logs_${storageVersion}`, JSON.stringify(loginLogs));
-                }
-            }, [users, posts, messages, groups, loanRequests, loginLogs, isLoaded]);
-
-            // مزامنة حالة المستخدم الحالي إذا تم تحديث بياناته من السحابة
-            useEffect(() => {
-                if (user) {
-                    const updatedMe = users.find(u => u.id === user.id);
-                    if (updatedMe && JSON.stringify(updatedMe) !== JSON.stringify(user)) {
-                        setUser(updatedMe);
+                    if (rtdb) {
+                        rtdb.ref('risala_users').off();
+                        rtdb.ref('risala_posts').off();
+                        rtdb.ref('risala_messages').off();
+                        rtdb.ref('risala_groups').off();
+                        rtdb.ref('risala_loans').off();
                     }
-                }
-            }, [users]);
+                };
+            }, []);
 
-            // تحديث حالة قراءة الرسائل الواردة بشكل دقيق في Firebase دون إعادة كتابة القائمة كاملة
             useEffect(() => {
                 if (selectedChatTarget && !selectedChatTarget.isGroup && user && view === 'messages') {
-                    const unreadMessages = messages.filter(m => !m.groupId && m.from === selectedChatTarget.id && m.to === user.id && !m.read);
-                    if (unreadMessages.length > 0) {
-                        // تحديث محلي فوري
+                    const unreadMsgs = messages.filter(m => !m.groupId && m.from === selectedChatTarget.id && m.to === user.id && !m.read);
+                    if (unreadMsgs.length > 0) {
                         setMessages(prev => prev.map(m => 
                             (!m.groupId && m.from === selectedChatTarget.id && m.to === user.id) ? { ...m, read: true } : m
                         ));
-
-                        // تحديث حقلي دقيق لكل رسالة في Firebase
                         if (rtdb) {
-                            unreadMessages.forEach(msgItem => {
-                                rtdb.ref(`risala_messages/${msgItem.id}/read`).set(true).catch(e => console.warn(e));
+                            unreadMsgs.forEach(m => {
+                                if (m.id) {
+                                    rtdb.ref(`risala_messages/${m.id}/read`).set(true).catch(() => {});
+                                }
                             });
                         }
                     }
                 }
-            }, [selectedChatTarget, view, user, messages]);
+            }, [selectedChatTarget, view, user, messages.length]);
 
-            // دالة الإرسال المتوافقة مع push() و set() الدقيق
-            const handleSendMessage = async (payload) => {
+            const handleSendMessage = async (msgPayload) => {
+                if (!rtdb) {
+                    const localMsg = { ...msgPayload, id: 'msg_' + Date.now().toString() };
+                    setMessages(prev => [...prev, localMsg]);
+                    return { success: true };
+                }
+
                 try {
-                    if (rtdb) {
-                        // 1. توليد مفتاح فريد عبر push()
-                        const newMsgRef = rtdb.ref('risala_messages').push();
-                        const firebaseId = newMsgRef.key;
-                        const completeMsg = {
-                            ...payload,
-                            id: firebaseId
-                        };
-                        // 2. الحفظ عبر set() على مسار الرسالة المفردة فقط
-                        await newMsgRef.set(completeMsg);
-                        return { success: true, message: completeMsg };
-                    } else {
-                        // في حال غياب اتصال السحابة المباشر
-                        const localMsg = {
-                            ...payload,
-                            id: 'msg_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)
-                        };
-                        setMessages(prev => [...prev, localMsg]);
-                        return { success: true, message: localMsg };
-                    }
-                } catch (error) {
-                    console.error("خطأ أثناء إرسال الرسالة إلى Firebase:", error);
-                    return { success: false, error: error.message || "فشل الاتصال بقاعدة البيانات" };
+                    const newMsgRef = rtdb.ref('risala_messages').push();
+                    const completeMsg = {
+                        ...msgPayload,
+                        id: newMsgRef.key
+                    };
+                    await newMsgRef.set(completeMsg);
+                    return { success: true };
+                } catch (err) {
+                    console.error("فشل إرسال الرسالة إلى Firebase:", err);
+                    return { success: false, error: "تعذر حفظ الرسالة على الخادم السحابي" };
                 }
             };
 
@@ -1709,15 +1928,17 @@
                 if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
             };
 
-            const createPost = (content) => {
-                if (!content.trim()) return;
+            const createPost = (content, image = null) => {
+                if (!content.trim() && !image) return;
                 const newPost = {
                     id: Date.now().toString(),
                     authorId: user.id,
                     authorName: user.name,
                     authorRole: user.role,
                     profileColor: user.profileColor,
-                    content: String(content),
+                    avatar: user.avatar || null,
+                    content: String(content || ''),
+                    image: image || null,
                     timestamp: new Date().toISOString(),
                     comments: []
                 };
@@ -1734,6 +1955,7 @@
                     id: Date.now().toString(),
                     authorId: user.id,
                     authorName: user.name,
+                    avatar: user.avatar || null,
                     text: String(text),
                     timestamp: new Date().toISOString(),
                     profileColor: user.profileColor,
@@ -1795,7 +2017,6 @@
                 setGroups(updatedGroups);
                 if (rtdb) rtdb.ref('risala_groups').set(updatedGroups);
 
-                // مسح رسائل المجموعة سحابياً
                 if (rtdb) {
                     const snap = await rtdb.ref('risala_messages').once('value');
                     const val = snap.val();
@@ -1816,23 +2037,18 @@
                 }
             };
 
-            // حذف أو إلغاء رسالة محددة مباشرة عبر مسارها الفرعي في Firebase
             const handleDeleteMessage = async (messageId) => {
-                // تحديث متفائل فوري للواجهة
                 setMessages(prev => prev.filter(m => m.id !== messageId));
                 if (rtdb) {
                     try {
-                        // إزالة مباشرة من المسار الفرعي المسمى بمفتاح الرسالة
                         await rtdb.ref(`risala_messages/${messageId}`).remove();
                     } catch (e) {
-                        console.warn("فشل حذف الرسالة من المسار المباشر، جاري البحث الاحتياطي:", e);
+                        console.warn("فشل حذف الرسالة:", e);
                     }
                 }
             };
 
-            // مسح كامل محادثة بين مستخدمين عبر Multi-location update
             const handleClearChat = async (targetUserId, isGroup = false) => {
-                // تحديث متفائل فوري
                 setMessages(prev => prev.filter(m => {
                     if (isGroup) return m.groupId !== targetUserId;
                     const isBetween = (m.from === user.id && m.to === targetUserId) || (m.from === targetUserId && m.to === user.id);
@@ -1877,7 +2093,6 @@
                 }
             };
 
-            // حذف مستخدم نهائياً وبشكل تام من النظام ومن فايربيس
             const handleDeleteUserPermanently = async (targetUserId) => {
                 if (targetUserId === 'admin-1') return;
                 const updatedUsers = users.filter(u => u.id !== targetUserId);
@@ -1895,7 +2110,6 @@
                     rtdb.ref('risala_posts').set(updatedPosts);
                     rtdb.ref('risala_loans').set(updatedLoans);
 
-                    // حذف كافة رسائله من المسار الدقيق
                     const snap = await rtdb.ref('risala_messages').once('value');
                     const val = snap.val();
                     if (val) {
@@ -2066,7 +2280,59 @@
 
             return (
                 <div className="flex flex-col h-screen text-right" dir="rtl" style={{ backgroundColor: UI_CONFIG.colors.milkyWhite }}>
-                    {/* نافذة التنبيه */}
+                    {viewingProfileUser && (
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-in zoom-in-95">
+                            <div className="bg-white rounded-[2.5rem] p-7 max-w-sm w-full text-center shadow-2xl border border-gray-100 relative overflow-hidden">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setViewingProfileUser(null)} 
+                                    className="absolute top-4 left-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-all"
+                                >
+                                    <MotionIcon iconName="X" size={16} />
+                                </button>
+
+                                <div className="w-20 h-20 rounded-[1.8rem] flex items-center justify-center text-white text-3xl font-black shadow-lg mx-auto mb-3 overflow-hidden" style={{ backgroundColor: viewingProfileUser.profileColor || '#2E1A47' }}>
+                                    {viewingProfileUser.avatar ? (
+                                        <img src={viewingProfileUser.avatar} alt={viewingProfileUser.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        String(viewingProfileUser.name)?.[0]
+                                    )}
+                                </div>
+
+                                <h3 className="text-xl font-black text-[#2E1A47] tracking-tight">{viewingProfileUser.name}</h3>
+                                <p className="text-xs text-purple-600 font-bold mt-0.5">@{viewingProfileUser.username}</p>
+
+                                <div className="bg-gray-50 p-4 rounded-2xl border text-xs text-gray-600 font-bold my-4 leading-relaxed italic text-right">
+                                    {viewingProfileUser.bio || 'لا توجد نبذة شخصية مسجلة بعد.'}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            const target = { ...viewingProfileUser, isGroup: false };
+                                            setViewingProfileUser(null);
+                                            setSelectedChatTarget(target);
+                                            setView('messages');
+                                        }} 
+                                        className="flex-1 py-3.5 bg-[#2E1A47] text-white rounded-xl font-black shadow-lg hover:bg-purple-900 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
+                                    >
+                                        <MotionIcon iconName="MessageSquare" size={16} />
+                                        <span>مراسلة الشخص</span>
+                                    </button>
+
+                                    <button 
+                                        type="button"
+                                        onClick={() => setViewingProfileUser(null)} 
+                                        className="px-5 py-3.5 bg-gray-100 text-gray-500 rounded-xl font-black text-xs hover:bg-gray-200 transition-all"
+                                    >
+                                        إغلاق
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeAlert && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
                             <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border-2 border-red-500 animate-in zoom-in-95">
@@ -2083,7 +2349,6 @@
                         </div>
                     )}
 
-                    {/* نافذة طلب التمويل */}
                     {loanModalAmount && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
                             <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border border-amber-400 animate-in zoom-in-95">
@@ -2149,8 +2414,8 @@
                                 </span>
                             </button>
                             <button type="button" onClick={() => setView('profile')} className="flex items-center gap-1.5 bg-white border border-gray-100 px-2 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
-                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white font-black text-[10px]" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
-                                    {String(user?.name)?.[0]}
+                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white font-black text-[10px] overflow-hidden" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
+                                    {user?.avatar ? <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" /> : String(user?.name)?.[0]}
                                 </div>
                                 <span className="text-[10px] font-bold text-[#2E1A47] max-w-[55px] truncate">{String(user?.name)}</span>
                             </button>
@@ -2178,7 +2443,9 @@
                                     <p className="text-[11px] font-black text-[#2E1A47] leading-none">{String(user?.name)}</p>
                                     <p className="text-[9px] text-purple-600 font-bold">@{String(user?.username)}</p>
                                 </div>
-                                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-inner" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>{String(user?.name)?.[0]}</div>
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-inner overflow-hidden" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
+                                    {user?.avatar ? <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" /> : String(user?.name)?.[0]}
+                                </div>
                             </button>
                         </div>
                     </header>
@@ -2197,14 +2464,14 @@
                                 </button>
                             </div>
                         </aside>
-
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8 bg-[#FDFCF8]">
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8 bg-[#FDFCF8] overscroll-contain">
                             <div className="max-w-4xl mx-auto h-full">
                                 {view === 'home' && (
                                     <HomeView 
                                         posts={posts} user={user} createPost={createPost} addComment={addComment} onDeleteComment={deleteComment}
                                         activeCommentPost={activeCommentPost} setActiveCommentPost={setActiveCommentPost}
                                         activeReplyToId={activeReplyToId} setActiveReplyToId={setActiveReplyToId}
+                                        onOpenUserProfile={handleOpenUserProfile}
                                     />
                                 )}
                                 {view === 'messages' && (
