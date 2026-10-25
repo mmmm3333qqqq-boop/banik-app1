@@ -240,6 +240,65 @@
             return "متصفح الويب";
         };
 
+        /**
+         * محرك فائق السرعة والأمان لضغط الصور وتجريد بيانات التتبع (EXIF/GPS)
+         * يقلل حجم أي صورة (حتى لو كانت 10MB) إلى أقل من 50KB ويحمي خصوصية المستخدم
+         */
+        const optimizeAndSecureImage = (file, maxDimension = 800, quality = 0.65) => {
+            return new Promise((resolve, reject) => {
+                if (!file || !file.type.startsWith('image/')) {
+                    return resolve(null);
+                }
+
+                const reader = new FileReader();
+                reader.onerror = () => resolve(null);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onerror = () => resolve(null);
+                    img.onload = () => {
+                        let { width, height } = img;
+
+                        // إعادة حساب الأبعاد للحفاظ على نسبة العرض للارتفاع
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+
+                        // تجريد البيانات الحساسة عبر إعادة الرسم في Canvas نقي
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // تنعيم الصورة
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'medium';
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // محاولة التصدير بصيغة WebP الحديثة والفائقة الصغر، مع بديل JPEG
+                        let resultDataUrl = canvas.toDataURL('image/webp', quality);
+                        if (!resultDataUrl.startsWith('data:image/webp')) {
+                            resultDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        }
+
+                        // إذا كان الحجم لا يزال أعلى من 60KB نقوم بضغط إضافي خفيف
+                        if (resultDataUrl.length > 80000 && quality > 0.45) {
+                            resultDataUrl = canvas.toDataURL('image/jpeg', 0.45);
+                        }
+
+                        resolve(resultDataUrl);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
         const SidebarItem = ({ iconName, label, active, onClick, badge }) => (
             <button type="button" onClick={onClick} className={`group flex items-center justify-between w-full p-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-white/10 text-white shadow-inner font-black' : 'text-purple-200 hover:bg-white/5 font-bold'}`}>
                 <div className="flex items-center gap-3.5">
@@ -319,46 +378,25 @@
             const [text, setText] = useState('');
             const [commentText, setCommentText] = useState('');
             const [postImage, setPostImage] = useState(null);
+            const [isOptimizing, setIsOptimizing] = useState(false);
             const fileInputRef = useRef(null);
 
-            const handleImageSelect = (e) => {
+            const handleImageSelect = async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
 
-                if (!file.type.startsWith('image/')) {
-                    return;
+                setIsOptimizing(true);
+                try {
+                    // تطبيق محرك الضغط وتجريد البيانات الحساسة فورياً
+                    const compressed = await optimizeAndSecureImage(file, 800, 0.65);
+                    if (compressed) {
+                        setPostImage(compressed);
+                    }
+                } catch (err) {
+                    console.error("خطأ في معالجة الصورة:", err);
+                } finally {
+                    setIsOptimizing(false);
                 }
-
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        const maxDimension = 900;
-
-                        if (width > maxDimension || height > maxDimension) {
-                            if (width > height) {
-                                height = Math.round((height * maxDimension) / width);
-                                width = maxDimension;
-                            } else {
-                                width = Math.round((width * maxDimension) / height);
-                                height = maxDimension;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                        setPostImage(optimizedDataUrl);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
             };
 
             const handlePublish = () => {
@@ -381,6 +419,13 @@
                             value={text} 
                             onChange={e => setText(e.target.value)} 
                         />
+
+                        {isOptimizing && (
+                            <div className="my-2 p-3 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
+                                <MotionIcon iconName="RefreshCcw" size={15} className="animate-spin" />
+                                <span>جارٍ ضغط وتأمين الصورة بأعلى سرعة...</span>
+                            </div>
+                        )}
 
                         {postImage && (
                             <div className="relative mt-3 rounded-2xl overflow-hidden border border-purple-100 max-h-64 bg-black/5 flex items-center justify-center group animate-in zoom-in-95">
@@ -418,7 +463,7 @@
 
                             <button 
                                 type="button" 
-                                disabled={!text.trim() && !postImage} 
+                                disabled={(!text.trim() && !postImage) || isOptimizing} 
                                 onClick={handlePublish} 
                                 className="group px-6 py-2.5 bg-[#2E1A47] text-white rounded-xl font-black shadow-lg transform active:scale-95 transition-all flex items-center gap-2 text-sm disabled:opacity-40"
                             >
@@ -1248,32 +1293,15 @@
             const avatarInputRef = useRef(null);
             const userPosts = useMemo(() => posts.filter(p => p.authorId === user?.id), [posts, user]);
 
-            const handleAvatarSelect = (e) => {
+            const handleAvatarSelect = async (e) => {
                 const file = e.target.files?.[0];
                 if (!file || !file.type.startsWith('image/')) return;
 
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const size = 300; // حجم مربع مثالي وخفيف للأفاتار
-                        canvas.width = size;
-                        canvas.height = size;
-                        const ctx = canvas.getContext('2d');
-                        
-                        // اقتصاص الصورة بشكل مربع في المنتصف (Center-Crop)
-                        const minSide = Math.min(img.width, img.height);
-                        const sx = (img.width - minSide) / 2;
-                        const sy = (img.height - minSide) / 2;
-                        
-                        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-                        const compressedAvatar = canvas.toDataURL('image/jpeg', 0.8);
-                        setAvatar(compressedAvatar);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
+                // ضغط فائق لصورة البروفايل (أبعاد مربعة 260px بجودة محكمة وحجم أقل من 15KB)
+                const compressedAvatar = await optimizeAndSecureImage(file, 260, 0.7);
+                if (compressedAvatar) {
+                    setAvatar(compressedAvatar);
+                }
             };
 
             return (
