@@ -30,29 +30,41 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const db = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.database() : null;
 
 /**
+ * دالة مساعدة لتوحيد وقراءة البيانات سواء كانت مخزنة كمصفوفة قديمة أو ككائنات بمفاتيح push()
+ */
+const parseMessagesSnapshot = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+        return val.filter(Boolean);
+    }
+    return Object.entries(val).map(([key, item]) => {
+        if (!item || typeof item !== 'object') return null;
+        return {
+            ...item,
+            id: item.id || key // الحفاظ على المعرف الداخلي أو استخدام مفتاح Firebase
+        };
+    }).filter(Boolean);
+};
+
+/**
  * ====================================================================
  * دوال التزامن السحابي المباشر (Realtime Services)
  * ====================================================================
  */
 const RisalaFirebaseService = {
     // ----------------- 1. المنشورات (Posts) -----------------
-    /**
-     * الاستماع اللحظي لتحديثات المنشورات (يحدث تلقائياً فور النشر من أي هاتف)
-     */
     listenToPosts: (callback) => {
         if (!db) return () => {};
         const postsRef = db.ref('risala_posts');
-        postsRef.on('value', (snapshot) => {
+        const handler = (snapshot) => {
             const data = snapshot.val();
             const list = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
             callback(list);
-        });
-        return () => postsRef.off();
+        };
+        postsRef.on('value', handler);
+        return () => postsRef.off('value', handler);
     },
 
-    /**
-     * حفظ قائمة المنشورات في فايربيس
-     */
     savePosts: async (posts) => {
         if (!db) return false;
         try {
@@ -65,23 +77,18 @@ const RisalaFirebaseService = {
     },
 
     // ----------------- 2. المستخدمين والأرصدة (Users) -----------------
-    /**
-     * الاستماع اللحظي لتحديثات الحسابات والكوينز
-     */
     listenToUsers: (callback) => {
         if (!db) return () => {};
         const usersRef = db.ref('risala_users');
-        usersRef.on('value', (snapshot) => {
+        const handler = (snapshot) => {
             const data = snapshot.val();
             const list = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
             callback(list);
-        });
-        return () => usersRef.off();
+        };
+        usersRef.on('value', handler);
+        return () => usersRef.off('value', handler);
     },
 
-    /**
-     * حفظ وتحديث بيانات المستخدمين في السحابة
-     */
     saveUsers: async (users) => {
         if (!db) return false;
         try {
@@ -93,53 +100,129 @@ const RisalaFirebaseService = {
         }
     },
 
-    // ----------------- 3. الرسائل والمحادثات (Messages) -----------------
+    // ----------------- 3. الرسائل والمحادثات المحدثة (Messages) -----------------
     /**
-     * الاستماع المباشر للرسائل الواردة والصادرة
+     * الاستماع المباشر للرسائل الواردة والصادرة مع دعم الانتقال الآمن للبيانات القديمة
      */
     listenToMessages: (callback) => {
         if (!db) return () => {};
         const msgsRef = db.ref('risala_messages');
-        msgsRef.on('value', (snapshot) => {
+        const handler = (snapshot) => {
             const data = snapshot.val();
-            const list = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
-            callback(list);
-        });
-        return () => msgsRef.off();
+            const parsedList = parseMessagesSnapshot(data);
+            // ترتيب الرسائل تصاعدياً حسب الوقت الزمني
+            parsedList.sort((a, b) => new Date(a.time || 0) - new Date(b.time || 0));
+            callback(parsedList);
+        };
+        msgsRef.on('value', handler);
+        return () => msgsRef.off('value', handler);
     },
 
     /**
-     * حفظ الرسائل في السحابة
+     * إرسال رسالة باستخدام push() ثم set() على مسارها المخصص فقط لمنع الـ Race Conditions
      */
-    saveMessages: async (messages) => {
+    sendMessage: async (messagePayload) => {
+        if (!db) throw new Error("قاعدة بيانات Firebase غير متصلة");
+        const msgsRef = db.ref('risala_messages');
+        const newMsgRef = msgsRef.push();
+        const firebaseKey = newMsgRef.key;
+
+        const completeMessage = {
+            ...messagePayload,
+            id: firebaseKey, // استخدام مفتاح Firebase الموحد والفريد
+            time: messagePayload.time || new Date().toISOString(),
+            read: false
+        };
+
+        await newMsgRef.set(completeMessage);
+        return completeMessage;
+    },
+
+    /**
+     * تحديث حالة قراءة رسالة محددة مباشرة دون إعادة كتابة القائمة كاملة
+     */
+    markMessageAsRead: async (messageId) => {
+        if (!db || !messageId) return;
+        try {
+            await db.ref(`risala_messages/${messageId}/read`).set(true);
+        } catch (e) {
+            console.warn("تعذر تحديث حالة القراءة للرسالة:", messageId, e);
+        }
+    },
+
+    /**
+     * حذف رسالة مفردة عبر مسارها الفرعي المباشر
+     */
+    deleteMessageById: async (messageId) => {
+        if (!db || !messageId) return false;
+        try {
+            await db.ref(`risala_messages/${messageId}`).remove();
+            return true;
+        } catch (e) {
+            console.error("فشل حذف الرسالة:", messageId, e);
+            return false;
+        }
+    },
+
+    /**
+     * مسح محادثة كاملة بين طرفين أو داخل مجموعة بطريقة دقيقة عبر Multi-location Update
+     */
+    clearConversation: async (currentUserId, targetId, isGroup = false) => {
         if (!db) return false;
         try {
-            await db.ref('risala_messages').set(messages);
+            const msgsRef = db.ref('risala_messages');
+            const snapshot = await msgsRef.once('value');
+            const data = snapshot.val();
+            if (!data) return true;
+
+            const updates = {};
+            if (Array.isArray(data)) {
+                // إذا كانت مخزنة بالشكل القديم كمصفوفة
+                const remaining = data.filter(m => {
+                    if (!m) return false;
+                    if (isGroup) return m.groupId !== targetId;
+                    const isBetween = (m.from === currentUserId && m.to === targetId) || (m.from === targetId && m.to === currentUserId);
+                    return !isBetween;
+                });
+                await msgsRef.set(remaining);
+            } else {
+                // مخزنة ككائنات بمفاتيح Firebase
+                Object.entries(data).forEach(([key, m]) => {
+                    if (!m) return;
+                    let shouldDelete = false;
+                    if (isGroup) {
+                        shouldDelete = m.groupId === targetId;
+                    } else {
+                        shouldDelete = !m.groupId && ((m.from === currentUserId && m.to === targetId) || (m.from === targetId && m.to === currentUserId));
+                    }
+                    if (shouldDelete) {
+                        updates[key] = null; // يمثل الحذف في Firebase
+                    }
+                });
+                if (Object.keys(updates).length > 0) {
+                    await msgsRef.update(updates);
+                }
+            }
             return true;
-        } catch (err) {
-            console.error("فشل حفظ الرسائل في السحابة:", err);
+        } catch (e) {
+            console.error("فشل مسح المحادثة:", e);
             return false;
         }
     },
 
     // ----------------- 4. طلبات التمويل (Loans) -----------------
-    /**
-     * الاستماع لطلبات شحن وتمويل الحسابات الواردة للإدارة
-     */
     listenToLoans: (callback) => {
         if (!db) return () => {};
         const loansRef = db.ref('risala_loans');
-        loansRef.on('value', (snapshot) => {
+        const handler = (snapshot) => {
             const data = snapshot.val();
             const list = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
             callback(list);
-        });
-        return () => loansRef.off();
+        };
+        loansRef.on('value', handler);
+        return () => loansRef.off('value', handler);
     },
 
-    /**
-     * حفظ أو معالجة طلبات التمويل
-     */
     saveLoans: async (loans) => {
         if (!db) return false;
         try {
@@ -157,4 +240,5 @@ if (typeof window !== 'undefined') {
     window.RisalaFirebaseService = RisalaFirebaseService;
     window.firebaseConfig = firebaseConfig;
     window.risalaDb = db;
+    window.parseMessagesSnapshot = parseMessagesSnapshot;
 }
