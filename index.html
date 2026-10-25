@@ -133,6 +133,7 @@
             Lock: "M7 11V7a5 5 0 0 1 10 0v4M19 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2zM12 16a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
             RefreshCcw: "M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 0 0 5.64 5.64L1 10M3.51 15a9 9 0 0 0 14.85 3.36L23 14",
             ShieldCheck: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4",
+            BadgeCheck: "M12 2l2.4 2.4 3.4-.4 1.4 3.1 3 1.6-.7 3.3 1.9 2.8-1.9 2.8.7 3.3-3 1.6-1.4 3.1-3.4-.4L12 22l-2.4-2.4-3.4.4-1.4-3.1-3-1.6.7-3.3-1.9-2.8 1.9-2.8-.7-3.3 3-1.6 1.4-3.1 3.4.4L12 2z",
             UserPlus: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M16 11h6",
             Send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
             Crown: "M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z",
@@ -199,6 +200,14 @@
                 </span>
             );
         };
+
+        const VerifiedBadge = ({ size = 15 }) => (
+            <span className="inline-flex items-center text-blue-500 drop-shadow-sm flex-shrink-0" title="حساب موثق">
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.2 14.6l-3.9-3.9 1.41-1.41L10.8 13.78l6.89-6.89 1.41 1.41-8.3 8.3z"/>
+                </svg>
+            </span>
+        );
 
         const UI_CONFIG = {
             colors: {
@@ -306,8 +315,7 @@
                 </form>
             );
         };
-
-        const HomeView = ({ posts, user, createPost, addComment, onDeleteComment, activeCommentPost, setActiveCommentPost, activeReplyToId, setActiveReplyToId, onOpenUserProfile }) => {
+        const HomeView = ({ posts, user, users, createPost, addComment, onDeleteComment, activeCommentPost, setActiveCommentPost, activeReplyToId, setActiveReplyToId, onOpenUserProfile }) => {
             const [text, setText] = useState('');
             const [commentText, setCommentText] = useState('');
             const [postImage, setPostImage] = useState(null);
@@ -361,8 +369,10 @@
                 if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
+            const userList = Array.isArray(users) ? users : [];
+
             return (
-                <div className="space-y-5 animate-in fade-in slide-in-bottom scroll-smooth">
+                <div className="space-y-5 animate-in fade-in slide-in-bottom scroll-smooth pb-36 md:pb-12">
                     {/* بطاقة إنشاء المنشور */}
                     <div className={`bg-white p-5 md:p-6 rounded-[2.2rem] border border-gray-100 ${UI_CONFIG.cardShadow} transition-all`}>
                         <textarea 
@@ -422,6 +432,9 @@
                     <div className="space-y-5">
                         {posts.map((post) => {
                             const isAdminPost = post.authorRole === 'admin' || post.authorId === 'admin-1';
+                            const authorUser = userList.find(u => u.id === post.authorId);
+                            const isAuthorVerified = Boolean(authorUser ? authorUser.verified : post.authorVerified);
+
                             return (
                                 <div key={post.id} className={`bg-white p-6 md:p-7 rounded-[2.2rem] border relative overflow-hidden transition-all duration-300 ${isAdminPost ? 'border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.1)] bg-gradient-to-b from-white to-amber-50/20' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
                                     {isAdminPost && <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-400 via-yellow-600 to-amber-400"></div>}
@@ -432,18 +445,19 @@
                                             className="flex items-center gap-3.5 cursor-pointer group"
                                             title="عرض الملف الشخصي"
                                         >
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md overflow-hidden group-hover:scale-105 transition-transform ${isAdminPost ? UI_CONFIG.goldGradient : 'bg-[#2E1A47]'}`} style={{ backgroundColor: !isAdminPost ? (post.profileColor || '#2E1A47') : undefined }}>
-                                                {post.avatar ? (
-                                                    <img src={post.avatar} alt={post.authorName} className="w-full h-full object-cover" />
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md overflow-hidden group-hover:scale-105 transition-transform ${isAdminPost ? UI_CONFIG.goldGradient : 'bg-[#2E1A47]'}`} style={{ backgroundColor: !isAdminPost ? (authorUser?.profileColor || post.profileColor || '#2E1A47') : undefined }}>
+                                                {(authorUser?.avatar || post.avatar) ? (
+                                                    <img src={authorUser?.avatar || post.avatar} alt={post.authorName} className="w-full h-full object-cover" />
                                                 ) : (
                                                     isAdminPost ? <MotionIcon iconName="Crown" size={24} className="animate-icon-float" /> : String(post.authorName)?.[0]
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5">
                                                     <h4 className={`font-black text-sm md:text-base tracking-tight group-hover:text-purple-700 transition-colors ${isAdminPost ? 'text-amber-700' : 'text-[#2E1A47]'}`}>
-                                                        {String(post.authorName)}
+                                                        {String(authorUser?.name || post.authorName)}
                                                     </h4>
+                                                    {isAuthorVerified && <VerifiedBadge size={16} />}
                                                     {isAdminPost && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-amber-200">إدارة</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold mt-0.5">
@@ -452,15 +466,6 @@
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <button 
-                                            type="button" 
-                                            onClick={() => onOpenUserProfile(post.authorId)}
-                                            className="text-xs font-black text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-                                        >
-                                            <MotionIcon iconName="User" size={13} />
-                                            <span className="hidden sm:inline">البروفايل</span>
-                                        </button>
                                     </div>
 
                                     {post.content && (
@@ -489,100 +494,107 @@
                                             <MotionIcon iconName="MessagesSquare" size={15} /> 
                                             <span>{post.comments?.length || 0} تعليقات</span>
                                         </button>
-
-                                        <button 
-                                            type="button" 
-                                            onClick={() => onOpenUserProfile(post.authorId)}
-                                            className="text-[11px] text-gray-400 font-bold hover:text-purple-600 transition-colors flex items-center gap-1"
-                                        >
-                                            <span>صاحب المنشور</span>
-                                            <MotionIcon iconName="ChevronRight" size={13} className="rotate-180" />
-                                        </button>
                                     </div>
 
                                     {activeCommentPost === post.id && (
                                         <div className="mt-4 pt-3 border-t border-gray-100 animate-in slide-in-bottom">
                                             <div className="space-y-3 mb-4 max-h-72 overflow-y-auto custom-scrollbar">
-                                                {(post.comments || []).map(comment => (
-                                                    <div key={comment.id} className="space-y-2 group">
-                                                        <div className="flex gap-2.5">
-                                                            <div 
-                                                                onClick={() => onOpenUserProfile(comment.authorId)}
-                                                                className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-black shadow-sm overflow-hidden cursor-pointer hover:scale-105 transition-transform" 
-                                                                style={{ backgroundColor: comment.profileColor || '#8B5CF6' }}
-                                                            >
-                                                                {comment.avatar ? (
-                                                                    <img src={comment.avatar} alt={comment.authorName} className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    String(comment.authorName)?.[0]
-                                                                )}
-                                                            </div>
-                                                            <div className="bg-gray-50 p-3.5 rounded-2xl rounded-tr-none flex-1 border border-gray-100 shadow-sm relative">
-                                                                <div className="flex justify-between items-center mb-1">
-                                                                    <span 
-                                                                        onClick={() => onOpenUserProfile(comment.authorId)}
-                                                                        className="text-[11px] font-black text-[#2E1A47] cursor-pointer hover:underline"
-                                                                    >
-                                                                        {String(comment.authorName)}
-                                                                    </span>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-[9px] text-gray-400">{new Date(comment.timestamp).toLocaleTimeString('ar-IQ')}</span>
-                                                                        {(comment.authorId === user.id || user.role === 'admin') && (
-                                                                            <button 
-                                                                                type="button" 
-                                                                                onClick={() => onDeleteComment(post.id, comment.id)} 
-                                                                                className="text-red-400 hover:text-red-600 p-1 transition-colors"
-                                                                                title="حذف التعليق"
-                                                                            >
-                                                                                <MotionIcon iconName="Trash2" size={12} />
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-xs text-gray-700 leading-relaxed font-bold">{String(comment.text)}</p>
-                                                                <button type="button" onClick={() => setActiveReplyToId(activeReplyToId === comment.id ? null : comment.id)} className="text-[10px] text-purple-600 font-black mt-2 flex items-center gap-1 hover:underline">
-                                                                    <MotionIcon iconName="Reply" size={10} /> رد
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        {(comment.replies || []).map(reply => (
-                                                            <div key={reply.id} className="flex gap-2.5 mr-10 animate-in fade-in slide-in-bottom group">
+                                                {(post.comments || []).map(comment => {
+                                                    const commentUser = userList.find(u => u.id === comment.authorId);
+                                                    const isCommentAuthorVerified = Boolean(commentUser ? commentUser.verified : comment.authorVerified);
+
+                                                    return (
+                                                        <div key={comment.id} className="space-y-2 group">
+                                                            <div className="flex gap-2.5">
                                                                 <div 
-                                                                    onClick={() => onOpenUserProfile(reply.authorId)}
-                                                                    className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-[9px] font-black shadow-sm overflow-hidden cursor-pointer" 
-                                                                    style={{ backgroundColor: reply.profileColor || '#2E1A47' }}
+                                                                    onClick={() => onOpenUserProfile(comment.authorId)}
+                                                                    className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-black shadow-sm overflow-hidden cursor-pointer hover:scale-105 transition-transform" 
+                                                                    style={{ backgroundColor: commentUser?.profileColor || comment.profileColor || '#8B5CF6' }}
                                                                 >
-                                                                    {reply.avatar ? (
-                                                                        <img src={reply.avatar} alt={reply.authorName} className="w-full h-full object-cover" />
+                                                                    {(commentUser?.avatar || comment.avatar) ? (
+                                                                        <img src={commentUser?.avatar || comment.avatar} alt={comment.authorName} className="w-full h-full object-cover" />
                                                                     ) : (
-                                                                        String(reply.authorName)?.[0]
+                                                                        String(comment.authorName)?.[0]
                                                                     )}
                                                                 </div>
-                                                                <div className="bg-purple-50/70 p-3 rounded-2xl rounded-tr-none flex-1 border border-purple-100/50 text-xs text-purple-900 font-bold relative">
+                                                                <div className="bg-gray-50 p-3.5 rounded-2xl rounded-tr-none flex-1 border border-gray-100 shadow-sm relative">
                                                                     <div className="flex justify-between items-center mb-1">
-                                                                        <span 
-                                                                            onClick={() => onOpenUserProfile(reply.authorId)}
-                                                                            className="text-[10px] font-black text-[#2E1A47] cursor-pointer hover:underline"
+                                                                        <div 
+                                                                            onClick={() => onOpenUserProfile(comment.authorId)}
+                                                                            className="flex items-center gap-1 cursor-pointer hover:underline"
                                                                         >
-                                                                            {String(reply.authorName)}
-                                                                        </span>
-                                                                        {(reply.authorId === user.id || user.role === 'admin') && (
-                                                                            <button 
-                                                                                type="button" 
-                                                                                onClick={() => onDeleteComment(post.id, comment.id, reply.id)} 
-                                                                                className="text-red-400 hover:text-red-600 p-0.5 transition-colors"
-                                                                                title="حذف الرد"
-                                                                            >
-                                                                                <MotionIcon iconName="Trash2" size={11} />
-                                                                            </button>
-                                                                        )}
+                                                                            <span className="text-[11px] font-black text-[#2E1A47]">
+                                                                                {String(commentUser?.name || comment.authorName)}
+                                                                            </span>
+                                                                            {isCommentAuthorVerified && <VerifiedBadge size={13} />}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[9px] text-gray-400">{new Date(comment.timestamp).toLocaleTimeString('ar-IQ')}</span>
+                                                                            {(comment.authorId === user.id || user.role === 'admin') && (
+                                                                                <button 
+                                                                                    type="button" 
+                                                                                    onClick={() => onDeleteComment(post.id, comment.id)} 
+                                                                                    className="text-red-400 hover:text-red-600 p-1 transition-colors"
+                                                                                    title="حذف التعليق"
+                                                                                >
+                                                                                    <MotionIcon iconName="Trash2" size={12} />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    {String(reply.text)}
+                                                                    <p className="text-xs text-gray-700 leading-relaxed font-bold">{String(comment.text)}</p>
+                                                                    <button type="button" onClick={() => setActiveReplyToId(activeReplyToId === comment.id ? null : comment.id)} className="text-[10px] text-purple-600 font-black mt-2 flex items-center gap-1 hover:underline">
+                                                                        <MotionIcon iconName="Reply" size={10} /> رد
+                                                                    </button>
                                                                 </div>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                ))}
+                                                            {(comment.replies || []).map(reply => {
+                                                                const replyUser = userList.find(u => u.id === reply.authorId);
+                                                                const isReplyAuthorVerified = Boolean(replyUser ? replyUser.verified : reply.authorVerified);
+
+                                                                return (
+                                                                    <div key={reply.id} className="flex gap-2.5 mr-10 animate-in fade-in slide-in-bottom group">
+                                                                        <div 
+                                                                            onClick={() => onOpenUserProfile(reply.authorId)}
+                                                                            className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-[9px] font-black shadow-sm overflow-hidden cursor-pointer" 
+                                                                            style={{ backgroundColor: replyUser?.profileColor || reply.profileColor || '#2E1A47' }}
+                                                                        >
+                                                                            {(replyUser?.avatar || reply.avatar) ? (
+                                                                                <img src={replyUser?.avatar || reply.avatar} alt={reply.authorName} className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                String(reply.authorName)?.[0]
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="bg-purple-50/70 p-3 rounded-2xl rounded-tr-none flex-1 border border-purple-100/50 text-xs text-purple-900 font-bold relative">
+                                                                            <div className="flex justify-between items-center mb-1">
+                                                                                <div 
+                                                                                    onClick={() => onOpenUserProfile(reply.authorId)}
+                                                                                    className="flex items-center gap-1 cursor-pointer hover:underline"
+                                                                                >
+                                                                                    <span className="text-[10px] font-black text-[#2E1A47]">
+                                                                                        {String(replyUser?.name || reply.authorName)}
+                                                                                    </span>
+                                                                                    {isReplyAuthorVerified && <VerifiedBadge size={12} />}
+                                                                                </div>
+                                                                                {(reply.authorId === user.id || user.role === 'admin') && (
+                                                                                    <button 
+                                                                                        type="button" 
+                                                                                        onClick={() => onDeleteComment(post.id, comment.id, reply.id)} 
+                                                                                        className="text-red-400 hover:text-red-600 p-0.5 transition-colors"
+                                                                                        title="حذف الرد"
+                                                                                    >
+                                                                                        <MotionIcon iconName="Trash2" size={11} />
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                            {String(reply.text)}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                             <div className="flex gap-2">
                                                 <input 
@@ -1303,7 +1315,10 @@
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h2 className="text-3xl font-black text-[#2E1A47] tracking-tight">{String(user?.name)}</h2>
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="text-3xl font-black text-[#2E1A47] tracking-tight">{String(user?.name)}</h2>
+                                                {user?.verified && <VerifiedBadge size={22} />}
+                                            </div>
                                             <p className="text-purple-600 font-bold text-sm mt-0.5">@{String(user?.username)}</p>
                                         </div>
                                         <button onClick={() => { setIsEditing(true); setAvatar(user?.avatar || null); }} className="p-3.5 bg-purple-50 text-purple-700 rounded-2xl hover:scale-105 transition-all shadow-sm">
@@ -1473,6 +1488,7 @@
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <p className="font-black text-[#2E1A47] text-base">{String(u.name)}</p>
+                                                        {u.verified && <VerifiedBadge size={18} />}
                                                         {u.role === 'admin' && <span className="bg-purple-100 text-[#2E1A47] text-[9px] font-black px-2 py-0.5 rounded-md">مسؤول</span>}
                                                     </div>
                                                     <p className="text-[11px] text-gray-400 font-bold mt-0.5">@{String(u.username)} • رصيد: <b className="text-amber-600 font-black">{Number(u.balance || 0).toFixed(2)} كوين</b></p>
@@ -1482,12 +1498,22 @@
                                                 <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border text-xs">
                                                     <span className="font-mono font-bold text-purple-700">{showPass[u.id] ? String(u.password) : '••••••••'}</span>
                                                     <button onClick={() => setShowPass({...showPass, [u.id]: !showPass[u.id]})} className="p-1 text-gray-400 hover:text-purple-600">
-                                                        <MotionIcon iconName={showPass[u.id] ? "EyeOff" : "Eye"} size={15}/>
+                                                        <MotionIcon iconName="EyeOff" size={15}/>
                                                     </button>
                                                     <button onClick={() => setEditingPassUserId(editingPassUserId === u.id ? null : u.id)} className="p-1 text-gray-400 hover:text-blue-600">
                                                         <MotionIcon iconName="KeyRound" size={15}/>
                                                     </button>
                                                 </div>
+                                                {/* زر توثيق الحساب من لوحة التحكم */}
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => updateUser(u.id, { verified: !u.verified })} 
+                                                    className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm ${u.verified ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 hover:bg-blue-50 text-gray-600'}`}
+                                                    title={u.verified ? "إلغاء التوثيق" : "توثيق هذا الحساب"}
+                                                >
+                                                    <VerifiedBadge size={14} />
+                                                    <span>{u.verified ? 'موثق' : 'توثيق الحساب'}</span>
+                                                </button>
                                                 {u.role !== 'admin' && (
                                                     <div className="flex gap-2">
                                                         <button onClick={() => updateUser(u.id, { status: u.status === 'active' ? 'banned' : 'active' })} className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${u.status === 'active' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-green-600 text-white'}`}>
@@ -1935,6 +1961,7 @@
                     authorId: user.id,
                     authorName: user.name,
                     authorRole: user.role,
+                    authorVerified: !!user.verified,
                     profileColor: user.profileColor,
                     avatar: user.avatar || null,
                     content: String(content || ''),
@@ -1955,6 +1982,7 @@
                     id: Date.now().toString(),
                     authorId: user.id,
                     authorName: user.name,
+                    authorVerified: !!user.verified,
                     avatar: user.avatar || null,
                     text: String(text),
                     timestamp: new Date().toISOString(),
@@ -2299,7 +2327,11 @@
                                     )}
                                 </div>
 
-                                <h3 className="text-xl font-black text-[#2E1A47] tracking-tight">{viewingProfileUser.name}</h3>
+                                <div className="flex items-center justify-center gap-1.5">
+                                    <h3 className="text-xl font-black text-[#2E1A47] tracking-tight">{viewingProfileUser.name}</h3>
+                                    {/* قراءة حالة التوثيق الحية من مصفوفة المستخدمين مباشرة */}
+                                    {Boolean(users.find(u => u.id === viewingProfileUser.id)?.verified || viewingProfileUser.verified) && <VerifiedBadge size={20} />}
+                                </div>
                                 <p className="text-xs text-purple-600 font-bold mt-0.5">@{viewingProfileUser.username}</p>
 
                                 <div className="bg-gray-50 p-4 rounded-2xl border text-xs text-gray-600 font-bold my-4 leading-relaxed italic text-right">
@@ -2464,11 +2496,11 @@
                                 </button>
                             </div>
                         </aside>
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8 bg-[#FDFCF8] overscroll-contain">
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-36 md:pb-8 bg-[#FDFCF8] overscroll-contain">
                             <div className="max-w-4xl mx-auto h-full">
                                 {view === 'home' && (
                                     <HomeView 
-                                        posts={posts} user={user} createPost={createPost} addComment={addComment} onDeleteComment={deleteComment}
+                                        posts={posts} user={user} users={users} createPost={createPost} addComment={addComment} onDeleteComment={deleteComment}
                                         activeCommentPost={activeCommentPost} setActiveCommentPost={setActiveCommentPost}
                                         activeReplyToId={activeReplyToId} setActiveReplyToId={setActiveReplyToId}
                                         onOpenUserProfile={handleOpenUserProfile}
