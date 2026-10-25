@@ -417,9 +417,11 @@
             );
         };
 
-        const MessagesView = ({ users, currentUser, messages, setMessages, groups, createGroup, deleteGroup, selectedTarget, setSelectedTarget, onDeleteMessage, onClearChat }) => {
+        const MessagesView = ({ users, currentUser, messages, groups, createGroup, deleteGroup, selectedTarget, setSelectedTarget, onDeleteMessage, onClearChat, onSendMessage }) => {
             const [searchQuery, setSearchQuery] = useState('');
             const [msg, setMsg] = useState('');
+            const [isSending, setIsSending] = useState(false);
+            const [sendError, setSendError] = useState('');
             const [showNewGroupModal, setShowNewGroupModal] = useState(false);
             const [newGroupName, setNewGroupName] = useState('');
             const [selectedMembers, setSelectedMembers] = useState([]);
@@ -462,37 +464,51 @@
             const conversation = useMemo(() => {
                 if (!selectedTarget) return [];
                 if (selectedTarget.isGroup) {
-                    return messages.filter(m => m.groupId === selectedTarget.id).sort((a,b) => new Date(a.time) - new Date(b.time));
+                    return messages.filter(m => m.groupId === selectedTarget.id).sort((a,b) => new Date(a.time || 0) - new Date(b.time || 0));
                 } else {
-                    return messages.filter(m => !m.groupId && ((m.from === currentUser.id && m.to === selectedTarget.id) || (m.from === selectedTarget.id && m.to === currentUser.id))).sort((a,b) => new Date(a.time) - new Date(b.time));
+                    return messages.filter(m => !m.groupId && ((m.from === currentUser.id && m.to === selectedTarget.id) || (m.from === selectedTarget.id && m.to === currentUser.id))).sort((a,b) => new Date(a.time || 0) - new Date(b.time || 0));
                 }
             }, [messages, selectedTarget, currentUser]);
 
-            // إرسال الرسالة مع الحفاظ على التركيز في الكيبورد ومنع اختفائه نهائياً
-            const handleSend = (e) => {
+            // إرسال الرسالة مع منع النقر المزدوج السريع وضمان الحفظ قبل التفريغ وإبقاء تركيز الكيبورد
+            const handleSend = async (e) => {
                 if (e) {
                     e.preventDefault();
                 }
-                if (!msg.trim() || !selectedTarget) return;
-                const newMsg = {
-                    id: Date.now().toString(),
+                const textToSend = msg.trim();
+                if (!textToSend || !selectedTarget || isSending) return;
+
+                setIsSending(true);
+                setSendError('');
+
+                const newMsgPayload = {
                     from: currentUser.id,
                     fromName: currentUser.name,
                     profileColor: currentUser.profileColor,
                     to: selectedTarget.isGroup ? null : selectedTarget.id,
                     groupId: selectedTarget.isGroup ? selectedTarget.id : null,
-                    text: String(msg),
+                    text: textToSend,
                     time: new Date().toISOString(),
                     read: false
                 };
-                setMessages([...messages, newMsg]);
-                setMsg('');
-                
-                // إعادة التركيز الفوري لمنع انغلاق كيبورد الهاتف
-                setTimeout(() => {
-                    inputRef.current?.focus();
-                    scrollToBottom("smooth");
-                }, 10);
+
+                try {
+                    const result = await onSendMessage(newMsgPayload);
+                    if (result && result.success) {
+                        setMsg('');
+                        setSendError('');
+                        setTimeout(() => {
+                            inputRef.current?.focus();
+                            scrollToBottom("smooth");
+                        }, 10);
+                    } else {
+                        setSendError(result?.error || 'تعذر إرسال الرسالة، يرجى التحقق من الاتصال');
+                    }
+                } catch (err) {
+                    setSendError('حدث خطأ أثناء الإرسال، يرجى المحاولة ثانية');
+                } finally {
+                    setIsSending(false);
+                }
             };
 
             const handleCreateGroup = (e) => {
@@ -696,11 +712,11 @@
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        {/* إمكانية حذف المحادثة بالكامل */}
+                                        {/* إمكانية مسح المحادثة بالكامل */}
                                         {!selectedTarget.isGroup && (
                                             <button 
                                                 type="button" 
-                                                onClick={() => onClearChat(selectedTarget.id)} 
+                                                onClick={() => onClearChat(selectedTarget.id, false)} 
                                                 className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-black flex items-center gap-1 transition-all"
                                                 title="حذف كل رسائل هذه المحادثة"
                                             >
@@ -761,23 +777,39 @@
                                     <div ref={chatEndRef} />
                                 </div>
 
-                                {/* حقل الإدخال مع منع إخفاء الكيبورد عبر form submit مع preventDefault */}
+                                {/* تنبيه عند وجود خطأ في الإرسال */}
+                                {sendError && (
+                                    <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-black border-t border-red-100 flex items-center justify-between animate-shake">
+                                        <span>{sendError}</span>
+                                        <button onClick={() => setSendError('')} className="text-red-400 hover:text-red-600">
+                                            <MotionIcon iconName="X" size={12} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* حقل الإدخال مع منع إخفاء الكيبورد عبر form submit مع preventDefault وحماية من النقر المزدوج */}
                                 <form onSubmit={handleSend} className="p-3 md:p-3.5 border-t flex gap-2 bg-white items-center sticky bottom-0 z-20">
                                     <input 
                                         ref={inputRef}
                                         type="text" 
-                                        placeholder="اكتب رسالتك هنا..." 
-                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 border border-gray-100" 
+                                        placeholder={isSending ? "جارٍ الإرسال..." : "اكتب رسالتك هنا..."} 
+                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 border border-gray-100 disabled:opacity-60" 
                                         value={msg} 
                                         onChange={e => setMsg(e.target.value)} 
                                         autoComplete="off"
+                                        disabled={isSending}
                                     />
                                     <button 
                                         type="submit" 
+                                        disabled={isSending || !msg.trim()}
                                         onMouseDown={(e) => e.preventDefault()} 
-                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] hover:bg-purple-900 text-white rounded-xl shadow-lg active:scale-95 transition-all flex-shrink-0"
+                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] hover:bg-purple-900 text-white rounded-xl shadow-lg active:scale-95 transition-all flex-shrink-0 disabled:opacity-40"
                                     >
-                                        <MotionIcon iconName="Send" size={17} className="rotate-180"/>
+                                        {isSending ? (
+                                            <MotionIcon iconName="RefreshCcw" size={17} className="animate-spin" />
+                                        ) : (
+                                            <MotionIcon iconName="Send" size={17} className="rotate-180"/>
+                                        )}
                                     </button>
                                 </form>
                             </>
@@ -1381,6 +1413,21 @@
                 return null;
             }, []);
 
+            // تحويل وتوحيد قراءة بيانات الرسائل سواء من الكائنات أو المصفوفات القديمة
+            const parseFirebaseMessages = (val) => {
+                if (!val) return [];
+                if (Array.isArray(val)) {
+                    return val.filter(Boolean);
+                }
+                return Object.entries(val).map(([key, item]) => {
+                    if (!item || typeof item !== 'object') return null;
+                    return {
+                        ...item,
+                        id: item.id || key
+                    };
+                }).filter(Boolean);
+            };
+
             useEffect(() => {
                 const safeParse = (key, fallback) => {
                     try {
@@ -1424,47 +1471,60 @@
                 setLoanRequests(savedLoans);
                 setLoginLogs(savedLogs);
 
-                // الاستماع اللحظي للمنشورات من فايربيس
+                // الاستماع اللحظي للبيانات مع تنظيف المستمعين بدقة
+                let unsubPosts = null;
+                let unsubUsers = null;
+                let unsubMsgs = null;
+                let unsubLoans = null;
+
                 if (rtdb) {
                     const postsRef = rtdb.ref('risala_posts');
-                    postsRef.on('value', (snapshot) => {
+                    const postsHandler = (snapshot) => {
                         const val = snapshot.val();
                         if (val) {
                             const cloudPosts = Array.isArray(val) ? val : Object.values(val);
                             setPosts(cloudPosts);
                             localStorage.setItem(`app_posts_${storageVersion}`, JSON.stringify(cloudPosts));
                         }
-                    });
+                    };
+                    postsRef.on('value', postsHandler);
+                    unsubPosts = () => postsRef.off('value', postsHandler);
 
                     const usersRef = rtdb.ref('risala_users');
-                    usersRef.on('value', (snapshot) => {
+                    const usersHandler = (snapshot) => {
                         const val = snapshot.val();
                         if (val) {
                             const cloudUsers = Array.isArray(val) ? val : Object.values(val);
                             setUsers(cloudUsers);
                             localStorage.setItem(`app_users_${storageVersion}`, JSON.stringify(cloudUsers));
                         }
-                    });
+                    };
+                    usersRef.on('value', usersHandler);
+                    unsubUsers = () => usersRef.off('value', usersHandler);
 
+                    // الاستماع للرسائل مع معالجة البيانات الفردية وعدم السماح لـ LocalStorage بمسح أحدث الرسائل
                     const msgsRef = rtdb.ref('risala_messages');
-                    msgsRef.on('value', (snapshot) => {
+                    const msgsHandler = (snapshot) => {
                         const val = snapshot.val();
-                        if (val) {
-                            const cloudMsgs = Array.isArray(val) ? val : Object.values(val);
-                            setMessages(cloudMsgs);
-                            localStorage.setItem(`app_msgs_${storageVersion}`, JSON.stringify(cloudMsgs));
-                        }
-                    });
+                        const parsed = parseFirebaseMessages(val);
+                        parsed.sort((a, b) => new Date(a.time || 0) - new Date(b.time || 0));
+                        setMessages(parsed);
+                        localStorage.setItem(`app_msgs_${storageVersion}`, JSON.stringify(parsed));
+                    };
+                    msgsRef.on('value', msgsHandler);
+                    unsubMsgs = () => msgsRef.off('value', msgsHandler);
 
                     const loansRef = rtdb.ref('risala_loans');
-                    loansRef.on('value', (snapshot) => {
+                    const loansHandler = (snapshot) => {
                         const val = snapshot.val();
                         if (val) {
                             const cloudLoans = Array.isArray(val) ? val : Object.values(val);
                             setLoanRequests(cloudLoans);
                             localStorage.setItem(`app_loans_${storageVersion}`, JSON.stringify(cloudLoans));
                         }
-                    });
+                    };
+                    loansRef.on('value', loansHandler);
+                    unsubLoans = () => loansRef.off('value', loansHandler);
                 }
 
                 try {
@@ -1481,15 +1541,14 @@
                 setIsLoaded(true);
 
                 return () => {
-                    if (rtdb) {
-                        rtdb.ref('risala_posts').off();
-                        rtdb.ref('risala_users').off();
-                        rtdb.ref('risala_messages').off();
-                        rtdb.ref('risala_loans').off();
-                    }
+                    if (unsubPosts) unsubPosts();
+                    if (unsubUsers) unsubUsers();
+                    if (unsubMsgs) unsubMsgs();
+                    if (unsubLoans) unsubLoans();
                 };
             }, [rtdb]);
 
+            // حفظ الحالة محلياً فقط كنسخة استرجاعية دون كتابة كاملة على Firebase
             useEffect(() => {
                 if (isLoaded) {
                     const storageVersion = 'v_risala_unified_v2';
@@ -1512,18 +1571,54 @@
                 }
             }, [users]);
 
+            // تحديث حالة قراءة الرسائل الواردة بشكل دقيق في Firebase دون إعادة كتابة القائمة كاملة
             useEffect(() => {
                 if (selectedChatTarget && !selectedChatTarget.isGroup && user && view === 'messages') {
-                    const hasUnread = messages.some(m => !m.groupId && m.from === selectedChatTarget.id && m.to === user.id && !m.read);
-                    if (hasUnread) {
-                        const updated = messages.map(m => 
+                    const unreadMessages = messages.filter(m => !m.groupId && m.from === selectedChatTarget.id && m.to === user.id && !m.read);
+                    if (unreadMessages.length > 0) {
+                        // تحديث محلي فوري
+                        setMessages(prev => prev.map(m => 
                             (!m.groupId && m.from === selectedChatTarget.id && m.to === user.id) ? { ...m, read: true } : m
-                        );
-                        setMessages(updated);
-                        if (rtdb) rtdb.ref('risala_messages').set(updated);
+                        ));
+
+                        // تحديث حقلي دقيق لكل رسالة في Firebase
+                        if (rtdb) {
+                            unreadMessages.forEach(msgItem => {
+                                rtdb.ref(`risala_messages/${msgItem.id}/read`).set(true).catch(e => console.warn(e));
+                            });
+                        }
                     }
                 }
-            }, [selectedChatTarget, view, user, messages.length]);
+            }, [selectedChatTarget, view, user, messages]);
+
+            // دالة الإرسال المتوافقة مع push() و set() الدقيق
+            const handleSendMessage = async (payload) => {
+                try {
+                    if (rtdb) {
+                        // 1. توليد مفتاح فريد عبر push()
+                        const newMsgRef = rtdb.ref('risala_messages').push();
+                        const firebaseId = newMsgRef.key;
+                        const completeMsg = {
+                            ...payload,
+                            id: firebaseId
+                        };
+                        // 2. الحفظ عبر set() على مسار الرسالة المفردة فقط
+                        await newMsgRef.set(completeMsg);
+                        return { success: true, message: completeMsg };
+                    } else {
+                        // في حال غياب اتصال السحابة المباشر
+                        const localMsg = {
+                            ...payload,
+                            id: 'msg_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)
+                        };
+                        setMessages(prev => [...prev, localMsg]);
+                        return { success: true, message: localMsg };
+                    }
+                } catch (error) {
+                    console.error("خطأ أثناء إرسال الرسالة إلى Firebase:", error);
+                    return { success: false, error: error.message || "فشل الاتصال بقاعدة البيانات" };
+                }
+            };
 
             const handleLogin = async (username, password) => {
                 const cleanU = username.trim().toLowerCase();
@@ -1609,7 +1704,6 @@
                 };
                 const updatedPosts = [newPost, ...posts];
                 setPosts(updatedPosts);
-                // إرسال المنشور مباشرة إلى فايربيس ليظهر لجميع الأجهزة فوراً
                 if (rtdb) {
                     rtdb.ref('risala_posts').set(updatedPosts);
                 }
@@ -1671,63 +1765,131 @@
                     members: Array.from(new Set([user.id, ...memberIds])),
                     createdAt: new Date().toISOString()
                 };
-                setGroups(prev => [newGroup, ...prev]);
+                const updated = [newGroup, ...groups];
+                setGroups(updated);
+                if (rtdb) rtdb.ref('risala_groups').set(updated);
                 return newGroup;
             };
 
-            const deleteGroup = (groupId) => {
+            const deleteGroup = async (groupId) => {
                 const updatedGroups = groups.filter(g => g.id !== groupId);
-                const updatedMsgs = messages.filter(m => m.groupId !== groupId);
                 setGroups(updatedGroups);
-                setMessages(updatedMsgs);
+                if (rtdb) rtdb.ref('risala_groups').set(updatedGroups);
+
+                // مسح رسائل المجموعة سحابياً
                 if (rtdb) {
-                    rtdb.ref('risala_messages').set(updatedMsgs);
+                    const snap = await rtdb.ref('risala_messages').once('value');
+                    const val = snap.val();
+                    if (val) {
+                        const updates = {};
+                        Object.entries(val).forEach(([k, item]) => {
+                            if (item && item.groupId === groupId) {
+                                updates[k] = null;
+                            }
+                        });
+                        if (Object.keys(updates).length > 0) {
+                            await rtdb.ref('risala_messages').update(updates);
+                        }
+                    }
                 }
                 if (selectedChatTarget?.id === groupId) {
                     setSelectedChatTarget(null);
                 }
             };
 
-            // حذف أو إلغاء رسالة محددة
-            const handleDeleteMessage = (messageId) => {
-                const updatedMsgs = messages.filter(m => m.id !== messageId);
-                setMessages(updatedMsgs);
+            // حذف أو إلغاء رسالة محددة مباشرة عبر مسارها الفرعي في Firebase
+            const handleDeleteMessage = async (messageId) => {
+                // تحديث متفائل فوري للواجهة
+                setMessages(prev => prev.filter(m => m.id !== messageId));
                 if (rtdb) {
-                    rtdb.ref('risala_messages').set(updatedMsgs);
+                    try {
+                        // إزالة مباشرة من المسار الفرعي المسمى بمفتاح الرسالة
+                        await rtdb.ref(`risala_messages/${messageId}`).remove();
+                    } catch (e) {
+                        console.warn("فشل حذف الرسالة من المسار المباشر، جاري البحث الاحتياطي:", e);
+                    }
                 }
             };
 
-            // مسح كامل محادثة بين مستخدمين
-            const handleClearChat = (targetUserId) => {
-                const updatedMsgs = messages.filter(m => 
-                    !((m.from === user.id && m.to === targetUserId) || (m.from === targetUserId && m.to === user.id))
-                );
-                setMessages(updatedMsgs);
+            // مسح كامل محادثة بين مستخدمين عبر Multi-location update
+            const handleClearChat = async (targetUserId, isGroup = false) => {
+                // تحديث متفائل فوري
+                setMessages(prev => prev.filter(m => {
+                    if (isGroup) return m.groupId !== targetUserId;
+                    const isBetween = (m.from === user.id && m.to === targetUserId) || (m.from === targetUserId && m.to === user.id);
+                    return !isBetween;
+                }));
+
                 if (rtdb) {
-                    rtdb.ref('risala_messages').set(updatedMsgs);
+                    try {
+                        const snap = await rtdb.ref('risala_messages').once('value');
+                        const data = snap.val();
+                        if (data) {
+                            const updates = {};
+                            if (Array.isArray(data)) {
+                                const remaining = data.filter(m => {
+                                    if (!m) return false;
+                                    if (isGroup) return m.groupId !== targetUserId;
+                                    const isBetween = (m.from === user.id && m.to === targetUserId) || (m.from === targetUserId && m.to === user.id);
+                                    return !isBetween;
+                                });
+                                await rtdb.ref('risala_messages').set(remaining);
+                            } else {
+                                Object.entries(data).forEach(([key, m]) => {
+                                    if (!m) return;
+                                    let shouldDelete = false;
+                                    if (isGroup) {
+                                        shouldDelete = m.groupId === targetUserId;
+                                    } else {
+                                        shouldDelete = !m.groupId && ((m.from === user.id && m.to === targetUserId) || (m.from === targetUserId && m.to === user.id));
+                                    }
+                                    if (shouldDelete) {
+                                        updates[key] = null;
+                                    }
+                                });
+                                if (Object.keys(updates).length > 0) {
+                                    await rtdb.ref('risala_messages').update(updates);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error("فشل مسح المحادثة سحابياً:", err);
+                    }
                 }
             };
 
             // حذف مستخدم نهائياً وبشكل تام من النظام ومن فايربيس
-            const handleDeleteUserPermanently = (targetUserId) => {
+            const handleDeleteUserPermanently = async (targetUserId) => {
                 if (targetUserId === 'admin-1') return;
                 const updatedUsers = users.filter(u => u.id !== targetUserId);
                 const updatedPosts = posts.filter(p => p.authorId !== targetUserId);
-                const updatedMsgs = messages.filter(m => m.from !== targetUserId && m.to !== targetUserId);
                 const updatedLoans = loanRequests.filter(l => l.userId !== targetUserId);
                 const updatedLogs = loginLogs.filter(l => l.userId !== targetUserId);
 
                 setUsers(updatedUsers);
                 setPosts(updatedPosts);
-                setMessages(updatedMsgs);
                 setLoanRequests(updatedLoans);
                 setLoginLogs(updatedLogs);
 
                 if (rtdb) {
                     rtdb.ref('risala_users').set(updatedUsers);
                     rtdb.ref('risala_posts').set(updatedPosts);
-                    rtdb.ref('risala_messages').set(updatedMsgs);
                     rtdb.ref('risala_loans').set(updatedLoans);
+
+                    // حذف كافة رسائله من المسار الدقيق
+                    const snap = await rtdb.ref('risala_messages').once('value');
+                    const val = snap.val();
+                    if (val) {
+                        const updates = {};
+                        Object.entries(val).forEach(([k, item]) => {
+                            if (item && (item.from === targetUserId || item.to === targetUserId)) {
+                                updates[k] = null;
+                            }
+                        });
+                        if (Object.keys(updates).length > 0) {
+                            await rtdb.ref('risala_messages').update(updates);
+                        }
+                    }
                 }
             };
 
@@ -1949,7 +2111,7 @@
                         </div>
                     )}
 
-                    {/* الشريط العلوي للهواتف: رفع إشارة التطبيق وعداد النقود إلى أعلى التطبيق */}
+                    {/* الشريط العلوي للهواتف */}
                     <header className="md:hidden sticky top-0 z-[70] px-4 py-2.5 flex justify-between items-center glass-morphism border-b border-gray-100 shadow-sm">
                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
                             <div className={`p-1.5 rounded-xl ${UI_CONFIG.inkGradient} text-white shadow-sm`}>
@@ -1976,7 +2138,7 @@
                         </div>
                     </header>
 
-                    {/* الشريط العلوي - مخصص للشاشات المتوسطة والكبيرة (الحواسيب) */}
+                    {/* الشريط العلوي للحواسيب */}
                     <header className={`hidden md:flex sticky top-0 z-[70] px-6 py-3.5 justify-between items-center ${UI_CONFIG.glassEffect} border-b shadow-sm`}>
                         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('home')}>
                             <div className={`p-2 rounded-xl ${UI_CONFIG.inkGradient} shadow-md shadow-purple-900/20 group-hover:rotate-6 transition-transform`}>
@@ -2002,7 +2164,7 @@
                         </div>
                     </header>
 
-                    {/* المحتوى الرئيسي وشريط التوجيه */}
+                    {/* المحتوى الرئيسي */}
                     <div className="flex flex-1 overflow-hidden">
                         <aside className="hidden md:flex flex-col w-72 bg-[#2E1A47] text-white p-5 gap-2 border-l border-white/5">
                             <SidebarItem iconName="Home" label="الرئيسية والمنشورات" active={view === 'home'} onClick={() => setView('home')} />
@@ -2029,14 +2191,11 @@
                                 {view === 'messages' && (
                                     <MessagesView 
                                         users={users} currentUser={user} messages={messages} 
-                                        setMessages={(newMsgs) => {
-                                            setMessages(newMsgs);
-                                            if (rtdb) rtdb.ref('risala_messages').set(newMsgs);
-                                        }} 
                                         groups={groups} createGroup={createGroup} deleteGroup={deleteGroup}
                                         selectedTarget={selectedChatTarget} setSelectedTarget={setSelectedChatTarget} 
                                         onDeleteMessage={handleDeleteMessage}
                                         onClearChat={handleClearChat}
+                                        onSendMessage={handleSendMessage}
                                     />
                                 )}
                                 {view === 'bank' && <BankView user={user} users={users} userLoans={loanRequests} onTransfer={handleTransferCoins} onOpenLoanModal={(amt) => setLoanModalAmount(amt)} />}
@@ -2060,7 +2219,7 @@
                         </main>
                     </div>
 
-                    {/* شريط الملاحة السفلي لشاشات الهواتف - يختفي تلقائياً فقط أثناء فتح محادثة ليتيح ظهور حقل الكتابة والكيبورد بشكل كامل */}
+                    {/* شريط الملاحة السفلي لشاشات الهواتف */}
                     <div className={`md:hidden fixed bottom-3 inset-x-3 z-[100] ${view === 'messages' && selectedChatTarget ? 'hidden' : 'block'}`}>
                         <nav className="h-16 glass-morphism rounded-2xl flex justify-around items-center px-2 shadow-2xl border border-gray-100">
                             <MobileNavItem iconName="Home" label="الرئيسية" active={view === 'home'} onClick={() => setView('home')} />
@@ -2077,7 +2236,6 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
 
-        // تسجيل Service Worker الخاص بالـ PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
