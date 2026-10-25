@@ -429,16 +429,31 @@
             const chatContainerRef = useRef(null);
             const inputRef = useRef(null);
 
-            // تمرير فائق السلاسة عند تغير الرسائل أو فتح محادثة
+            // النزول التلقائي الفوري والمؤكد إلى أسفل المحادثة كما في تطبيقات المراسلة
             const scrollToBottom = (behavior = "smooth") => {
-                if (chatEndRef.current) {
-                    chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
-                }
+                requestAnimationFrame(() => {
+                    if (chatContainerRef.current) {
+                        chatContainerRef.current.scrollTo({
+                            top: chatContainerRef.current.scrollHeight,
+                            behavior: behavior
+                        });
+                    }
+                    if (chatEndRef.current) {
+                        chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
+                    }
+                });
             };
 
+            // النزول لأسفل المحادثة عند وصول رسائل جديدة أو تغيير الهدف أو عند فتح الشاشة
             useEffect(() => {
-                scrollToBottom("smooth");
-            }, [messages, selectedTarget]);
+                if (selectedTarget) {
+                    // نزول فوري أولاً لضمان عدم بقاء المحادثة بالأعلى
+                    scrollToBottom("auto");
+                    // تأكيد النزول بعد اكتمال رسم العناصر
+                    const t = setTimeout(() => scrollToBottom("smooth"), 80);
+                    return () => clearTimeout(t);
+                }
+            }, [messages.length, selectedTarget]);
 
             const pinnedUsers = useMemo(() => {
                 const ids = new Set();
@@ -470,7 +485,7 @@
                 }
             }, [messages, selectedTarget, currentUser]);
 
-            // إرسال الرسالة مع منع النقر المزدوج السريع وضمان الحفظ قبل التفريغ وإبقاء تركيز الكيبورد
+            // إرسال الرسالة مع النزول التلقائي السلس إلى أسفل المحادثة فوراً
             const handleSend = async (e) => {
                 if (e) {
                     e.preventDefault();
@@ -500,7 +515,7 @@
                         setTimeout(() => {
                             inputRef.current?.focus();
                             scrollToBottom("smooth");
-                        }, 10);
+                        }, 30);
                     } else {
                         setSendError(result?.error || 'تعذر إرسال الرسالة، يرجى التحقق من الاتصال');
                     }
@@ -522,7 +537,7 @@
             };
 
             return (
-                <div className={`bg-white rounded-[2.5rem] border border-gray-100 flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative ${selectedTarget ? 'h-[calc(100vh-80px)] md:h-[calc(100vh-140px)]' : 'h-[calc(100vh-175px)] md:h-[calc(100vh-140px)]'}`}>
+                <div className={`bg-white rounded-[2.5rem] border border-gray-100 flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative w-full ${selectedTarget ? 'h-[calc(100vh-85px)] md:h-[calc(100vh-130px)]' : 'h-[calc(100vh-175px)] md:h-[calc(100vh-130px)]'}`}>
                     {/* نافذة إنشاء مجموعة جديدة */}
                     {showNewGroupModal && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-in zoom-in-95">
@@ -575,7 +590,7 @@
                     )}
 
                     {/* القائمة الجانبية للرسائل */}
-                    <div className={`w-full md:w-80 border-l flex flex-col bg-gray-50/30 ${selectedTarget ? 'hidden md:flex' : 'flex'}`}>
+                    <div className={`w-full md:w-80 border-l flex flex-col bg-gray-50/30 h-full ${selectedTarget ? 'hidden md:flex' : 'flex'}`}>
                         <div className="p-5 bg-white border-b space-y-3">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-black text-base text-[#2E1A47] tracking-tight flex items-center gap-2">
@@ -682,13 +697,13 @@
                         </div>
                     </div>
 
-                    {/* منطقة الدردشة المفتوحة */}
-                    <div className={`flex-1 flex flex-col bg-white ${!selectedTarget ? 'hidden md:flex items-center justify-center opacity-40' : 'flex'}`}>
+                    {/* منطقة الدردشة المفتوحة - مصممة بهندسة تطبيقات المراسلة الحديثة */}
+                    <div className={`flex-1 flex flex-col bg-white h-full min-h-0 ${!selectedTarget ? 'hidden md:flex items-center justify-center opacity-40' : 'flex'}`}>
                         {selectedTarget ? (
-                            <>
-                                <div className="p-3.5 md:p-4 border-b flex items-center justify-between bg-gray-50/80 backdrop-blur-sm">
+                            <div className="flex flex-col h-full w-full min-h-0 relative">
+                                {/* ترويسة المحادثة العلوية الثابتة */}
+                                <div className="p-3 md:p-3.5 border-b flex items-center justify-between bg-gray-50/90 backdrop-blur-sm flex-shrink-0 z-10">
                                     <div className="flex items-center gap-2.5">
-                                        {/* زر خروج سهل ومباشر لشاشات الهاتف */}
                                         <button 
                                             type="button"
                                             onClick={() => setSelectedTarget(null)} 
@@ -712,7 +727,6 @@
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        {/* إمكانية مسح المحادثة بالكامل */}
                                         {!selectedTarget.isGroup && (
                                             <button 
                                                 type="button" 
@@ -738,11 +752,14 @@
                                     </div>
                                 </div>
                                 
-                                {/* منطقة المحادثة مع تقليب سلس للغاية overscroll-contain و scroll-smooth */}
+                                {/* منطقة المحادثة مع تمرير سلس ونزول تلقائي لأسفل الرسائل دون أي توقف */}
                                 <div 
                                     ref={chatContainerRef} 
-                                    className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 custom-scrollbar bg-[#FDFCF8]/40 overscroll-contain scroll-smooth"
-                                    style={{ WebkitOverflowScrolling: 'touch' }}
+                                    className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar bg-[#FDFCF8]/50 overscroll-contain"
+                                    style={{ 
+                                        WebkitOverflowScrolling: 'touch',
+                                        overflowAnchor: 'auto'
+                                    }}
                                 >
                                     {conversation.map(m => {
                                         const isMine = m.from === currentUser.id;
@@ -757,7 +774,6 @@
                                                         <span className={`text-[8px] opacity-60 font-bold ${isMine ? 'text-left' : 'text-right'}`}>
                                                             {new Date(m.time).toLocaleTimeString('ar-IQ')}
                                                         </span>
-                                                        {/* إلغاء أو حذف الرسالة الفردية لصاحبها أو للمسؤول */}
                                                         {(isMine || currentUser.role === 'admin') && (
                                                             <button 
                                                                 type="button" 
@@ -774,12 +790,12 @@
                                             </div>
                                         );
                                     })}
-                                    <div ref={chatEndRef} />
+                                    <div ref={chatEndRef} className="h-2 w-full flex-shrink-0" />
                                 </div>
 
                                 {/* تنبيه عند وجود خطأ في الإرسال */}
                                 {sendError && (
-                                    <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-black border-t border-red-100 flex items-center justify-between animate-shake">
+                                    <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-black border-t border-red-100 flex items-center justify-between animate-shake flex-shrink-0">
                                         <span>{sendError}</span>
                                         <button onClick={() => setSendError('')} className="text-red-400 hover:text-red-600">
                                             <MotionIcon iconName="X" size={12} />
@@ -787,13 +803,16 @@
                                     </div>
                                 )}
 
-                                {/* حقل الإدخال مع منع إخفاء الكيبورد عبر form submit مع preventDefault وحماية من النقر المزدوج */}
-                                <form onSubmit={handleSend} className="p-3 md:p-3.5 border-t flex gap-2 bg-white items-center sticky bottom-0 z-20">
+                                {/* حقل الإدخال الثابت بأسفل المحادثة تماماً مع زر الإرسال السلس */}
+                                <form 
+                                    onSubmit={handleSend} 
+                                    className="p-2.5 md:p-3.5 border-t flex gap-2 bg-white items-center flex-shrink-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]"
+                                >
                                     <input 
                                         ref={inputRef}
                                         type="text" 
                                         placeholder={isSending ? "جارٍ الإرسال..." : "اكتب رسالتك هنا..."} 
-                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 border border-gray-100 disabled:opacity-60" 
+                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-2xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 border border-gray-100 disabled:opacity-60" 
                                         value={msg} 
                                         onChange={e => setMsg(e.target.value)} 
                                         autoComplete="off"
@@ -803,7 +822,7 @@
                                         type="submit" 
                                         disabled={isSending || !msg.trim()}
                                         onMouseDown={(e) => e.preventDefault()} 
-                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] hover:bg-purple-900 text-white rounded-xl shadow-lg active:scale-95 transition-all flex-shrink-0 disabled:opacity-40"
+                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] hover:bg-purple-900 text-white rounded-2xl shadow-lg active:scale-95 transition-all flex-shrink-0 disabled:opacity-40"
                                     >
                                         {isSending ? (
                                             <MotionIcon iconName="RefreshCcw" size={17} className="animate-spin" />
@@ -812,7 +831,7 @@
                                         )}
                                     </button>
                                 </form>
-                            </>
+                            </div>
                         ) : (
                             <div className="text-center p-6">
                                 <MotionIcon iconName="MessageSquare" size={54} className="mx-auto mb-3 text-purple-300 animate-icon-float" />
