@@ -140,6 +140,7 @@
             MessageSquare: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
             Search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35",
             ChevronRight: "M9 18l6-6-6-6",
+            ArrowRight: "M5 12h14M12 5l7 7-7 7",
             Settings: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
             FileText: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8",
             Trash2: "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6",
@@ -416,15 +417,26 @@
             );
         };
 
-        const MessagesView = ({ users, currentUser, messages, setMessages, groups, createGroup, deleteGroup, selectedTarget, setSelectedTarget }) => {
+        const MessagesView = ({ users, currentUser, messages, setMessages, groups, createGroup, deleteGroup, selectedTarget, setSelectedTarget, onDeleteMessage, onClearChat }) => {
             const [searchQuery, setSearchQuery] = useState('');
             const [msg, setMsg] = useState('');
             const [showNewGroupModal, setShowNewGroupModal] = useState(false);
             const [newGroupName, setNewGroupName] = useState('');
             const [selectedMembers, setSelectedMembers] = useState([]);
             const chatEndRef = useRef(null);
+            const chatContainerRef = useRef(null);
+            const inputRef = useRef(null);
 
-            useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, selectedTarget]);
+            // تمرير فائق السلاسة عند تغير الرسائل أو فتح محادثة
+            const scrollToBottom = (behavior = "smooth") => {
+                if (chatEndRef.current) {
+                    chatEndRef.current.scrollIntoView({ behavior, block: 'end' });
+                }
+            };
+
+            useEffect(() => {
+                scrollToBottom("smooth");
+            }, [messages, selectedTarget]);
 
             const pinnedUsers = useMemo(() => {
                 const ids = new Set();
@@ -456,7 +468,11 @@
                 }
             }, [messages, selectedTarget, currentUser]);
 
-            const handleSend = () => {
+            // إرسال الرسالة مع الحفاظ على التركيز في الكيبورد ومنع اختفائه نهائياً
+            const handleSend = (e) => {
+                if (e) {
+                    e.preventDefault();
+                }
                 if (!msg.trim() || !selectedTarget) return;
                 const newMsg = {
                     id: Date.now().toString(),
@@ -471,6 +487,12 @@
                 };
                 setMessages([...messages, newMsg]);
                 setMsg('');
+                
+                // إعادة التركيز الفوري لمنع انغلاق كيبورد الهاتف
+                setTimeout(() => {
+                    inputRef.current?.focus();
+                    scrollToBottom("smooth");
+                }, 10);
             };
 
             const handleCreateGroup = (e) => {
@@ -566,7 +588,7 @@
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar overscroll-contain">
                             {searchQuery.trim() ? (
                                 <div>
                                     <span className="text-[10px] font-bold text-gray-400 px-3 pb-1 block">نتائج البحث:</span>
@@ -648,66 +670,116 @@
                     <div className={`flex-1 flex flex-col bg-white ${!selectedTarget ? 'hidden md:flex items-center justify-center opacity-40' : 'flex'}`}>
                         {selectedTarget ? (
                             <>
-                                <div className="p-4 border-b flex items-center justify-between bg-gray-50/70">
-                                    <div className="flex items-center gap-3.5">
-                                        <button onClick={() => setSelectedTarget(null)} className="md:hidden p-2 text-purple-600 hover:scale-110 transition-transform"><MotionIcon iconName="ChevronRight"/></button>
-                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shadow-md" style={{ backgroundColor: selectedTarget.isGroup ? '#8B5CF6' : (selectedTarget.profileColor || '#2E1A47') }}>
+                                <div className="p-3.5 md:p-4 border-b flex items-center justify-between bg-gray-50/80 backdrop-blur-sm">
+                                    <div className="flex items-center gap-2.5">
+                                        {/* زر خروج سهل ومباشر لشاشات الهاتف */}
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSelectedTarget(null)} 
+                                            className="p-2 -mr-1 text-purple-700 bg-purple-100/80 hover:bg-purple-200 rounded-xl transition-all flex items-center gap-1 text-xs font-black md:hidden active:scale-90"
+                                            title="الرجوع للقائمة"
+                                        >
+                                            <MotionIcon iconName="ChevronRight" size={18} />
+                                            <span>رجوع</span>
+                                        </button>
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shadow-md flex-shrink-0" style={{ backgroundColor: selectedTarget.isGroup ? '#8B5CF6' : (selectedTarget.profileColor || '#2E1A47') }}>
                                             {selectedTarget.isGroup ? <MotionIcon iconName="Users" size={18} /> : String(selectedTarget.name)?.[0]}
                                         </div>
                                         <div>
-                                            <h4 className="font-black text-sm text-[#2E1A47]">
+                                            <h4 className="font-black text-sm text-[#2E1A47] leading-tight">
                                                 {String(selectedTarget.name)} {selectedTarget.isGroup ? '(مجموعة)' : `(@${selectedTarget.username})`}
                                             </h4>
-                                            <p className="text-[9px] text-green-600 font-bold flex items-center gap-1">
+                                            <p className="text-[9px] text-green-600 font-bold flex items-center gap-1 mt-0.5">
                                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> 
                                                 {selectedTarget.isGroup ? `${(selectedTarget.members?.length || 0) + 1} أعضاء بالمجموعة` : 'متصل'}
                                             </p>
                                         </div>
                                     </div>
-                                    {selectedTarget.isGroup && (selectedTarget.createdBy === currentUser.id || currentUser.role === 'admin') && (
-                                        <button 
-                                            type="button" 
-                                            onClick={() => deleteGroup(selectedTarget.id)} 
-                                            className="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
-                                            title="إزالة المجموعة"
-                                        >
-                                            <MotionIcon iconName="Trash2" size={15} />
-                                            <span className="hidden sm:inline">حذف المجموعة</span>
-                                        </button>
-                                    )}
+                                    <div className="flex items-center gap-1.5">
+                                        {/* إمكانية حذف المحادثة بالكامل */}
+                                        {!selectedTarget.isGroup && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => onClearChat(selectedTarget.id)} 
+                                                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-black flex items-center gap-1 transition-all"
+                                                title="حذف كل رسائل هذه المحادثة"
+                                            >
+                                                <MotionIcon iconName="Trash2" size={14} />
+                                                <span className="hidden sm:inline">مسح المحادثة</span>
+                                            </button>
+                                        )}
+                                        {selectedTarget.isGroup && (selectedTarget.createdBy === currentUser.id || currentUser.role === 'admin') && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => deleteGroup(selectedTarget.id)} 
+                                                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                                                title="إزالة المجموعة"
+                                            >
+                                                <MotionIcon iconName="Trash2" size={14} />
+                                                <span className="hidden sm:inline">حذف المجموعة</span>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-6 space-y-3.5 custom-scrollbar bg-[#FDFCF8]/40">
+                                
+                                {/* منطقة المحادثة مع تقليب سلس للغاية overscroll-contain و scroll-smooth */}
+                                <div 
+                                    ref={chatContainerRef} 
+                                    className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 custom-scrollbar bg-[#FDFCF8]/40 overscroll-contain scroll-smooth"
+                                    style={{ WebkitOverflowScrolling: 'touch' }}
+                                >
                                     {conversation.map(m => {
                                         const isMine = m.from === currentUser.id;
                                         return (
-                                            <div key={m.id} className={`flex ${isMine ? 'justify-start' : 'justify-end'} animate-in zoom-in-95`}>
-                                                <div className={`p-3.5 rounded-[1.6rem] max-w-[82%] shadow-sm border ${isMine ? 'bg-[#2E1A47] text-white rounded-br-none border-[#2E1A47]' : 'bg-white border-gray-100 text-[#2E1A47] rounded-bl-none'}`}>
+                                            <div key={m.id} className={`flex ${isMine ? 'justify-start' : 'justify-end'} animate-in zoom-in-95 group relative`}>
+                                                <div className={`p-3.5 rounded-[1.6rem] max-w-[85%] shadow-sm border relative ${isMine ? 'bg-[#2E1A47] text-white rounded-br-none border-[#2E1A47]' : 'bg-white border-gray-100 text-[#2E1A47] rounded-bl-none'}`}>
                                                     {selectedTarget.isGroup && !isMine && (
                                                         <span className="text-[10px] font-black text-purple-600 block mb-1">{String(m.fromName || 'عضو')}</span>
                                                     )}
-                                                    <p className="text-xs font-bold leading-relaxed">{String(m.text)}</p>
-                                                    <span className={`text-[8px] opacity-60 block mt-1.5 font-bold ${isMine ? 'text-left' : 'text-right'}`}>
-                                                        {new Date(m.time).toLocaleTimeString('ar-IQ')}
-                                                    </span>
+                                                    <p className="text-xs font-bold leading-relaxed break-words">{String(m.text)}</p>
+                                                    <div className="flex items-center justify-between gap-3 mt-1.5 pt-1 border-t border-white/10">
+                                                        <span className={`text-[8px] opacity-60 font-bold ${isMine ? 'text-left' : 'text-right'}`}>
+                                                            {new Date(m.time).toLocaleTimeString('ar-IQ')}
+                                                        </span>
+                                                        {/* إلغاء أو حذف الرسالة الفردية لصاحبها أو للمسؤول */}
+                                                        {(isMine || currentUser.role === 'admin') && (
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => onDeleteMessage(m.id)}
+                                                                className={`text-[9px] flex items-center gap-0.5 opacity-60 hover:opacity-100 transition-opacity ${isMine ? 'text-red-200 hover:text-red-100' : 'text-red-500'}`}
+                                                                title="إلغاء الرسالة / حذف"
+                                                            >
+                                                                <MotionIcon iconName="Trash2" size={10} />
+                                                                <span>إلغاء</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                     <div ref={chatEndRef} />
                                 </div>
-                                <div className="p-3.5 border-t flex gap-2 bg-white">
+
+                                {/* حقل الإدخال مع منع إخفاء الكيبورد عبر form submit مع preventDefault */}
+                                <form onSubmit={handleSend} className="p-3 md:p-3.5 border-t flex gap-2 bg-white items-center">
                                     <input 
+                                        ref={inputRef}
                                         type="text" 
                                         placeholder="اكتب رسالتك هنا..." 
-                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200" 
+                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 border border-gray-100" 
                                         value={msg} 
                                         onChange={e => setMsg(e.target.value)} 
-                                        onKeyDown={e => e.key === 'Enter' && handleSend()} 
+                                        autoComplete="off"
                                     />
-                                    <button onClick={handleSend} className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] text-white rounded-xl shadow-lg active:scale-95 transition-all">
+                                    <button 
+                                        type="submit" 
+                                        onMouseDown={(e) => e.preventDefault()} 
+                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] hover:bg-purple-900 text-white rounded-xl shadow-lg active:scale-95 transition-all flex-shrink-0"
+                                    >
                                         <MotionIcon iconName="Send" size={17} className="rotate-180"/>
                                     </button>
-                                </div>
+                                </form>
                             </>
                         ) : (
                             <div className="text-center p-6">
@@ -725,6 +797,13 @@
             const [recipient, setRecipient] = useState('');
             const [amount, setAmount] = useState('');
             const [feedback, setFeedback] = useState(null);
+
+            // مطابقة تامة ودقيقة فقط لاسم المستخدم دون أي مقترحات عشوائية
+            const exactMatchedUser = useMemo(() => {
+                const clean = recipient.trim().replace(/^@/, '').toLowerCase();
+                if (!clean) return null;
+                return users.find(u => u.username.toLowerCase() === clean && u.id !== user?.id) || null;
+            }, [recipient, users, user]);
 
             const handleSendCoins = (e) => {
                 e.preventDefault();
@@ -769,7 +848,7 @@
                             </div>
                             <div>
                                 <h3 className="font-black text-base text-[#2E1A47]">إرسال عملات</h3>
-                                <p className="text-[11px] text-gray-400 font-bold">تحويل رصيد لأي مستخدم باسم المستخدم</p>
+                                <p className="text-[11px] text-gray-400 font-bold">تحويل رصيد بالبحث الدقيق باسم المستخدم (المطلوب فقط)</p>
                             </div>
                         </div>
 
@@ -784,12 +863,36 @@
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">@</div>
                                 <input 
                                     type="text" 
-                                    placeholder="اسم مستخدم المستلم..." 
+                                    placeholder="اكتب اسم مستخدم الشخص المطلوب بدقة..." 
                                     value={recipient} 
                                     onChange={e => setRecipient(e.target.value)} 
                                     className="w-full pr-10 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm border border-gray-100 focus:ring-2 focus:ring-amber-300"
+                                    autoComplete="off"
                                 />
                             </div>
+
+                            {/* تأكيد الشخص المطلوب فقط دون أي اقتراحات أخرى */}
+                            {exactMatchedUser && (
+                                <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-center justify-between animate-in zoom-in-95">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-sm" style={{ backgroundColor: exactMatchedUser.profileColor || '#2E1A47' }}>
+                                            {String(exactMatchedUser.name)?.[0]}
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-xs text-[#2E1A47]">{exactMatchedUser.name}</p>
+                                            <p className="text-[10px] text-purple-700 font-bold">@{exactMatchedUser.username} (الشخص المطلوب)</p>
+                                        </div>
+                                    </div>
+                                    <span className="p-1.5 bg-green-500 text-white rounded-lg text-xs">
+                                        <MotionIcon iconName="Check" size={14} />
+                                    </span>
+                                </div>
+                            )}
+
+                            {recipient.trim() && !exactMatchedUser && (
+                                <p className="text-[11px] text-gray-400 px-2 font-bold">اكتب اسم المستخدم كاملاً للتعرف عليه بدقة</p>
+                            )}
+
                             <div className="relative">
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                     <MotionIcon iconName="Coins" size={18} className="text-amber-500" />
@@ -803,7 +906,7 @@
                                     className="w-full pr-12 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm border border-gray-100 focus:ring-2 focus:ring-amber-300"
                                 />
                             </div>
-                            <button type="submit" className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-[#2E1A47] font-black rounded-2xl shadow-lg hover:shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2">
+                            <button type="submit" disabled={!exactMatchedUser || !amount} className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-[#2E1A47] font-black rounded-2xl shadow-lg hover:shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-40">
                                 <MotionIcon iconName="Send" size={18} className="rotate-180" />
                                 <span>تأكيد الإرسال</span>
                             </button>
@@ -970,7 +1073,7 @@
                                     <p className="text-xs font-bold text-gray-700 line-clamp-1">{String(p.content)}</p>
                                     <span className="text-[9px] text-gray-400 font-bold">{new Date(p.timestamp).toLocaleDateString('ar-IQ')}</span>
                                 </div>
-                                <button onClick={() => onDeletePost(p.id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                                <button type="button" onClick={() => onDeletePost(p.id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                     <MotionIcon iconName="Trash2" size={16}/>
                                 </button>
                             </div>
@@ -980,7 +1083,7 @@
             );
         };
 
-        const AdminView = ({ users, setUsers, posts, onDeletePost, adminTab, setAdminTab, loginLogs, onAdjustCoins, loanRequests, onApproveLoan, onRejectLoan }) => {
+        const AdminView = ({ users, setUsers, posts, onDeletePost, adminTab, setAdminTab, loginLogs, onAdjustCoins, loanRequests, onApproveLoan, onRejectLoan, onDeleteUserPermanently }) => {
             const [showPass, setShowPass] = useState({});
             const [alertText, setAlertText] = useState('');
             const [selectedUserAlert, setSelectedUserAlert] = useState(null);
@@ -1077,8 +1180,18 @@
                                                 </div>
                                                 {u.role !== 'admin' && (
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => updateUser(u.id, { status: u.status === 'active' ? 'banned' : 'active' })} className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${u.status === 'active' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-red-600 text-white'}`}>
+                                                        <button onClick={() => updateUser(u.id, { status: u.status === 'active' ? 'banned' : 'active' })} className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${u.status === 'active' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-green-600 text-white'}`}>
                                                             {u.status === 'active' ? 'حظر الحساب' : 'فك الحظر'}
+                                                        </button>
+                                                        {/* إمكانية حذف المستخدم بشكل تام من النظام */}
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => onDeleteUserPermanently(u.id)} 
+                                                            className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black shadow-sm flex items-center gap-1 transition-all"
+                                                            title="حذف المستخدم وجميع بياناته نهائياً"
+                                                        >
+                                                            <MotionIcon iconName="Trash2" size={13} />
+                                                            <span>حذف تام</span>
                                                         </button>
                                                     </div>
                                                 )}
@@ -1575,6 +1688,49 @@
                 }
             };
 
+            // حذف أو إلغاء رسالة محددة
+            const handleDeleteMessage = (messageId) => {
+                const updatedMsgs = messages.filter(m => m.id !== messageId);
+                setMessages(updatedMsgs);
+                if (rtdb) {
+                    rtdb.ref('risala_messages').set(updatedMsgs);
+                }
+            };
+
+            // مسح كامل محادثة بين مستخدمين
+            const handleClearChat = (targetUserId) => {
+                const updatedMsgs = messages.filter(m => 
+                    !((m.from === user.id && m.to === targetUserId) || (m.from === targetUserId && m.to === user.id))
+                );
+                setMessages(updatedMsgs);
+                if (rtdb) {
+                    rtdb.ref('risala_messages').set(updatedMsgs);
+                }
+            };
+
+            // حذف مستخدم نهائياً وبشكل تام من النظام ومن فايربيس
+            const handleDeleteUserPermanently = (targetUserId) => {
+                if (targetUserId === 'admin-1') return;
+                const updatedUsers = users.filter(u => u.id !== targetUserId);
+                const updatedPosts = posts.filter(p => p.authorId !== targetUserId);
+                const updatedMsgs = messages.filter(m => m.from !== targetUserId && m.to !== targetUserId);
+                const updatedLoans = loanRequests.filter(l => l.userId !== targetUserId);
+                const updatedLogs = loginLogs.filter(l => l.userId !== targetUserId);
+
+                setUsers(updatedUsers);
+                setPosts(updatedPosts);
+                setMessages(updatedMsgs);
+                setLoanRequests(updatedLoans);
+                setLoginLogs(updatedLogs);
+
+                if (rtdb) {
+                    rtdb.ref('risala_users').set(updatedUsers);
+                    rtdb.ref('risala_posts').set(updatedPosts);
+                    rtdb.ref('risala_messages').set(updatedMsgs);
+                    rtdb.ref('risala_loans').set(updatedLoans);
+                }
+            };
+
             const handleRequestLoan = (amount) => {
                 const newLoanReq = {
                     id: Date.now().toString(),
@@ -1879,6 +2035,8 @@
                                         }} 
                                         groups={groups} createGroup={createGroup} deleteGroup={deleteGroup}
                                         selectedTarget={selectedChatTarget} setSelectedTarget={setSelectedChatTarget} 
+                                        onDeleteMessage={handleDeleteMessage}
+                                        onClearChat={handleClearChat}
                                     />
                                 )}
                                 {view === 'bank' && <BankView user={user} users={users} userLoans={loanRequests} onTransfer={handleTransferCoins} onOpenLoanModal={(amt) => setLoanModalAmount(amt)} />}
@@ -1895,6 +2053,7 @@
                                         adminTab={adminTab} setAdminTab={setAdminTab} loginLogs={loginLogs} 
                                         onAdjustCoins={handleAdjustCoinsByAdmin}
                                         loanRequests={loanRequests} onApproveLoan={handleApproveLoan} onRejectLoan={handleRejectLoan}
+                                        onDeleteUserPermanently={handleDeleteUserPermanently}
                                     />
                                 )}
                             </div>
