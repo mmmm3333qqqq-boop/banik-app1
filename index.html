@@ -14,6 +14,11 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
+    <!-- Firebase App & Services (v9 compat for easy single-file CDN integration) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
         
@@ -84,6 +89,26 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        // Firebase Configuration & Initialization
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzthotcwzFkMHuJVG6EXf0mr6ZPnZpe8M",
+            authDomain: "coeins-4b149.firebaseapp.com",
+            databaseURL: "https://coeins-4b149-default-rtdb.firebaseio.com",
+            projectId: "coeins-4b149",
+            storageBucket: "coeins-4b149.firebasestorage.app",
+            messagingSenderId: "30968526506",
+            appId: "1:30968526506:web:5a437551aabbf4855402d3",
+            measurementId: "G-94568KXQQ7"
+        };
+
+        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+            try {
+                firebase.initializeApp(firebaseConfig);
+            } catch (err) {
+                console.warn("Firebase initialization notice:", err);
+            }
+        }
+
         const { useState, useEffect, useMemo, useRef } = React;
 
         const ICON_PATHS = {
@@ -389,7 +414,6 @@
 
             useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, selectedTarget]);
 
-            // المحادثات المثبتة (محادثات المستخدمين التي تم تبادل رسائل معها)
             const pinnedUsers = useMemo(() => {
                 const ids = new Set();
                 messages.forEach(m => {
@@ -401,19 +425,16 @@
                 return users.filter(u => ids.has(u.id) && u.id !== currentUser.id);
             }, [messages, users, currentUser]);
 
-            // نتائج البحث: لا تظهر الأسماء إلا عند البحث
             const searchResults = useMemo(() => {
                 const q = searchQuery.trim().toLowerCase();
                 if (!q) return [];
                 return users.filter(u => u.id !== currentUser.id && (u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)));
             }, [searchQuery, users, currentUser]);
 
-            // المجموعات الخاصة بالمستخدم
             const myGroups = useMemo(() => {
                 return (groups || []).filter(g => (g.members || []).includes(currentUser.id) || g.createdBy === currentUser.id);
             }, [groups, currentUser]);
 
-            // سجل رسائل الهدف المحدد (مستخدم أو مجموعة)
             const conversation = useMemo(() => {
                 if (!selectedTarget) return [];
                 if (selectedTarget.isGroup) {
@@ -451,7 +472,7 @@
             };
 
             return (
-                <div className="bg-white rounded-[2.5rem] border border-gray-100 h-[calc(100vh-175px)] md:h-[calc(100vh-140px)] flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative">
+                <div className="bg-white rounded-[2.5rem] border border-gray-100 h-[calc(100vh-230px)] md:h-[calc(100vh-140px)] flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative">
                     {/* نافذة إنشاء مجموعة جديدة */}
                     {showNewGroupModal && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-in zoom-in-95">
@@ -534,7 +555,6 @@
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                            {/* نتائج البحث المباشرة */}
                             {searchQuery.trim() ? (
                                 <div>
                                     <span className="text-[10px] font-bold text-gray-400 px-3 pb-1 block">نتائج البحث:</span>
@@ -558,7 +578,6 @@
                                 </div>
                             ) : (
                                 <>
-                                    {/* المجموعات */}
                                     {myGroups.length > 0 && (
                                         <div className="space-y-1 mb-3">
                                             <span className="text-[10px] font-bold text-gray-400 px-2 block">المجموعات</span>
@@ -580,7 +599,6 @@
                                         </div>
                                     )}
 
-                                    {/* المحادثات الفردية المثبتة */}
                                     <div className="space-y-1">
                                         <span className="text-[10px] font-bold text-gray-400 px-2 block">المحادثات المثبتة</span>
                                         {pinnedUsers.length > 0 ? (
@@ -712,8 +730,7 @@
             const myPendingLoans = (userLoans || []).filter(l => l.userId === user?.id && l.status === 'pending');
 
             return (
-                <div className="space-y-6 animate-in fade-in slide-in-bottom pb-16">
-                    {/* بطاقة الرصيد الفاخرة */}
+                <div className="space-y-6 animate-in fade-in slide-in-bottom pb-24">
                     <div className="rounded-[3rem] p-8 text-white relative overflow-hidden shadow-2xl bg-gradient-to-br from-[#1E1131] via-[#2E1A47] to-[#472275] border border-amber-400/30">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                         <div className="relative z-10 flex flex-col items-center text-center">
@@ -733,7 +750,6 @@
                         </div>
                     </div>
 
-                    {/* الحوالة السريعة */}
                     <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
@@ -782,7 +798,6 @@
                         </form>
                     </div>
 
-                    {/* طلبات التمويل */}
                     <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-purple-50 text-purple-700 rounded-2xl">
@@ -818,7 +833,6 @@
                         </div>
                     </div>
 
-                    {/* السجل المالي */}
                     <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                             <h3 className="font-black text-base text-[#2E1A47] flex items-center gap-2">
@@ -856,7 +870,7 @@
             );
         };
 
-        const ProfileView = ({ user, posts, updateProfile, onDeletePost }) => {
+        const ProfileView = ({ user, posts, updateProfile, onDeletePost, onLogout }) => {
             const [isEditing, setIsEditing] = useState(false);
             const [name, setName] = useState(user?.name || '');
             const [bio, setBio] = useState(user?.bio || '');
@@ -865,7 +879,7 @@
             const userPosts = useMemo(() => posts.filter(p => p.authorId === user?.id), [posts, user]);
 
             return (
-                <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-bottom pb-20">
+                <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-bottom pb-28">
                     <div className="bg-white rounded-[3rem] overflow-hidden border shadow-sm relative">
                         <div className="h-44 relative transition-colors duration-500" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
                             <div className="absolute -bottom-10 right-10 w-32 h-32 rounded-[2.5rem] bg-white p-1.5 shadow-2xl">
@@ -898,6 +912,18 @@
                                             <span className="text-[10px] text-gray-500 font-bold block">المنشورات</span>
                                             <span className="text-base font-black text-[#2E1A47]">{userPosts.length}</span>
                                         </div>
+                                    </div>
+
+                                    {/* زر تسجيل الخروج في الملف الشخصي مخصص لشاشات الهاتف */}
+                                    <div className="md:hidden pt-4 border-t border-gray-100">
+                                        <button 
+                                            type="button" 
+                                            onClick={onLogout} 
+                                            className="w-full py-3.5 bg-red-50 hover:bg-red-100 active:scale-[0.98] text-red-600 rounded-2xl font-black text-sm flex items-center justify-center gap-2 border border-red-100 transition-all shadow-sm"
+                                        >
+                                            <MotionIcon iconName="LogOut" size={18} />
+                                            <span>تسجيل الخروج</span>
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -973,7 +999,7 @@
             }, [loanRequests]);
 
             return (
-                <div className="space-y-6 pb-20 animate-in fade-in">
+                <div className="space-y-6 pb-28 animate-in fade-in">
                     <div className="bg-white rounded-[3rem] p-7 md:p-9 border shadow-sm relative overflow-hidden">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                             <div className="flex items-center gap-4">
@@ -1012,7 +1038,6 @@
                             ))}
                         </div>
 
-                        {/* قسم المستخدمين */}
                         {adminTab === 'users' && (
                             <div className="space-y-4 animate-in slide-in-bottom">
                                 {users.map(u => (
@@ -1048,7 +1073,6 @@
                                             </div>
                                         </div>
 
-                                        {/* تعديل الرصيد المالي للعضو */}
                                         <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                                             <span className="text-[11px] font-bold text-gray-500 min-w-fit">التحكم بالرصيد:</span>
                                             <input 
@@ -1082,7 +1106,6 @@
                             </div>
                         )}
 
-                        {/* قسم إدارة طلبات التمويل (حصراً من الإدارة) */}
                         {adminTab === 'loans' && (
                             <div className="space-y-4 animate-in slide-in-bottom">
                                 <h4 className="font-black text-[#2E1A47] text-sm px-2">طلبات التمويل الواردة للموافقة</h4>
@@ -1440,7 +1463,6 @@
                 }
             };
 
-            // إرسال طلب تمويل للإدارة (لا يشحن فورا للحسابات العامة)
             const handleRequestLoan = (amount) => {
                 const newLoanReq = {
                     id: Date.now().toString(),
@@ -1453,7 +1475,6 @@
                 setLoanModalAmount(null);
             };
 
-            // موافقة الإدارة على طلب التمويل وشحن الكوينز للمستخدم
             const handleApproveLoan = (loanId) => {
                 const loan = loanRequests.find(l => l.id === loanId);
                 if (!loan || loan.status !== 'pending') return;
@@ -1624,7 +1645,7 @@
                         </div>
                     )}
 
-                    {/* نافذة طلب التمويل (إرسال طلب للإدارة) */}
+                    {/* نافذة طلب التمويل */}
                     {loanModalAmount && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
                             <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border border-amber-400 animate-in zoom-in-95">
@@ -1671,6 +1692,33 @@
                         </div>
                     )}
 
+                    {/* الشريط العلوي للهواتف: رفع إشارة التطبيق وعداد النقود إلى أعلى التطبيق */}
+                    <header className="md:hidden sticky top-0 z-[70] px-4 py-2.5 flex justify-between items-center glass-morphism border-b border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+                            <div className={`p-1.5 rounded-xl ${UI_CONFIG.inkGradient} text-white shadow-sm`}>
+                                <MotionIcon iconName="Send" className="rotate-180" size={16} />
+                            </div>
+                            <div>
+                                <span className="font-black text-sm text-[#2E1A47] block leading-tight">رسالة</span>
+                                <span className="text-[8px] text-gray-400 font-bold block leading-none">تواصل ومدفوعات</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setView('bank')} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
+                                <MotionIcon iconName="Coins" size={13} className="text-amber-600" />
+                                <span className="text-[11px] font-black text-[#2E1A47]">
+                                    {user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)} كوين
+                                </span>
+                            </button>
+                            <button type="button" onClick={() => setView('profile')} className="flex items-center gap-1.5 bg-white border border-gray-100 px-2 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
+                                <div className="w-5 h-5 rounded-md flex items-center justify-center text-white font-black text-[10px]" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
+                                    {String(user?.name)?.[0]}
+                                </div>
+                                <span className="text-[10px] font-bold text-[#2E1A47] max-w-[55px] truncate">{String(user?.name)}</span>
+                            </button>
+                        </div>
+                    </header>
+
                     {/* الشريط العلوي - مخصص للشاشات المتوسطة والكبيرة (الحواسيب) */}
                     <header className={`hidden md:flex sticky top-0 z-[70] px-6 py-3.5 justify-between items-center ${UI_CONFIG.glassEffect} border-b shadow-sm`}>
                         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('home')}>
@@ -1712,7 +1760,7 @@
                             </div>
                         </aside>
 
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-36 md:pb-8 bg-[#FDFCF8]">
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8 bg-[#FDFCF8]">
                             <div className="max-w-4xl mx-auto h-full">
                                 {view === 'home' && (
                                     <HomeView 
@@ -1729,7 +1777,7 @@
                                     />
                                 )}
                                 {view === 'bank' && <BankView user={user} users={users} userLoans={loanRequests} onTransfer={handleTransferCoins} onOpenLoanModal={(amt) => setLoanModalAmount(amt)} />}
-                                {view === 'profile' && <ProfileView user={user} posts={posts} updateProfile={updateProfile} onDeletePost={(id) => setPosts(p => p.filter(item => item.id !== id))} />}
+                                {view === 'profile' && <ProfileView user={user} posts={posts} updateProfile={updateProfile} onDeletePost={(id) => setPosts(p => p.filter(item => item.id !== id))} onLogout={handleLogout} />}
                                 {view === 'admin' && (
                                     <AdminView 
                                         users={users} setUsers={setUsers} posts={posts} onDeletePost={(id) => setPosts(p => p.filter(item => item.id !== id))} 
@@ -1742,34 +1790,8 @@
                         </main>
                     </div>
 
-                    {/* الحاوية السفلية لشاشات الهواتف: تضم شريط العناوين وشريط التنقل بشكل منظم */}
-                    <div className="md:hidden fixed bottom-3 inset-x-3 z-[100] flex flex-col gap-2">
-                        {/* شريط العناوين السفلي للهواتف */}
-                        <div className="glass-morphism rounded-2xl px-4 py-2.5 flex justify-between items-center shadow-lg border border-gray-100">
-                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-                                <div className={`p-1.5 rounded-lg ${UI_CONFIG.inkGradient} text-white shadow-sm`}>
-                                    <MotionIcon iconName="Send" className="rotate-180" size={15} />
-                                </div>
-                                <div>
-                                    <span className="font-black text-sm text-[#2E1A47] block leading-tight">رسالة</span>
-                                    <span className="text-[8px] text-gray-400 font-bold block leading-none">تواصل ومدفوعات</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => setView('bank')} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
-                                    <MotionIcon iconName="Coins" size={13} className="text-amber-600" />
-                                    <span className="text-[11px] font-black text-[#2E1A47]">{user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)}</span>
-                                </button>
-                                <button type="button" onClick={() => setView('profile')} className="flex items-center gap-1.5 bg-white border border-gray-100 px-2 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
-                                    <div className="w-5 h-5 rounded-md flex items-center justify-center text-white font-black text-[10px]" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
-                                        {String(user?.name)?.[0]}
-                                    </div>
-                                    <span className="text-[10px] font-bold text-[#2E1A47] max-w-[60px] truncate">{String(user?.name)}</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* شريط الملاحة السفلي للهواتف */}
+                    {/* شريط الملاحة السفلي لشاشات الهواتف */}
+                    <div className="md:hidden fixed bottom-3 inset-x-3 z-[100]">
                         <nav className="h-16 glass-morphism rounded-2xl flex justify-around items-center px-2 shadow-2xl border border-gray-100">
                             <MobileNavItem iconName="Home" label="الرئيسية" active={view === 'home'} onClick={() => setView('home')} />
                             <MobileNavItem iconName="MessageSquare" label="الرسائل" active={view === 'messages'} onClick={() => setView('messages')} badge={unreadMessagesCount > 0 ? unreadMessagesCount : null} />
