@@ -168,7 +168,10 @@
             ArrowDownLeft: "M17 7L7 17M7 17h10M7 17V7",
             ArrowUpRight: "M7 17L17 7M17 7H7M17 7v10",
             Image: "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm10.5 7l-5-6-4 5-3-3-4 5h16z",
-            Camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
+            Camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+            Heart: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
+            ThumbsUp: "M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3",
+            Smile: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"
         };
 
         const MotionIcon = ({ iconName, size = 20, className = "" }) => {
@@ -238,6 +241,80 @@
             if (/Windows/i.test(ua)) return "كمبيوتر ويندوز";
             if (/Mac/i.test(ua)) return "ماكنتوش";
             return "متصفح الويب";
+        };
+
+        /**
+         * نظام صوتي نقي واحترافي للتنبيهات بدون ملفات صوت خارجية (Web Audio API)
+         */
+        const playNotificationSound = () => {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                
+                // نغمة تنبيه ناعمة ومميزة
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now); // D5
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+                
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.3, now + 0.04);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } catch (e) {
+                // تجاهل أخطاء تشغيل الصوت إذا كانت الشاشة مغلقة أو لم يتفاعل المستخدم بعد
+            }
+        };
+
+        /**
+         * إطلاق إشعار نظام حقيقي على شاشة الهاتف عبر Service Worker
+         */
+        const triggerSystemNotification = (title, body, tag = 'risala-notification') => {
+            playNotificationSound();
+            
+            if ('vibrate' in navigator) {
+                try { navigator.vibrate([200, 100, 200]); } catch(e){}
+            }
+
+            if (!('Notification' in window) || Notification.permission !== 'granted') {
+                return;
+            }
+
+            // محاولة إرسال الإشعار عبر الـ Service Worker لضمان ظهوره كإشعار تطبيق PWA أصلي
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SHOW_NOTIFICATION',
+                    payload: { title, body, tag }
+                });
+            } else {
+                try {
+                    new Notification(title, {
+                        body: body,
+                        icon: "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%232E1A47'/%3E%3Cpath d='M440 80L230 290M440 80l-140 380-70-170-170-80 380-130z' fill='none' stroke='%23F59E0B' stroke-width='38' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+                        vibrate: [200, 100, 200]
+                    });
+                } catch(e) {}
+            }
+        };
+
+        /**
+         * طلب إذن الإشعارات من المستخدم بأسلوب سلس
+         */
+        const requestNotificationPermission = async () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                try {
+                    await Notification.requestPermission();
+                } catch (e) {}
+            }
         };
 
         /**
@@ -374,11 +451,13 @@
                 </form>
             );
         };
-        const HomeView = ({ posts, user, users, createPost, addComment, onDeleteComment, activeCommentPost, setActiveCommentPost, activeReplyToId, setActiveReplyToId, onOpenUserProfile }) => {
+
+        const HomeView = ({ posts, user, users, createPost, addComment, onDeleteComment, activeCommentPost, setActiveCommentPost, activeReplyToId, setActiveReplyToId, onOpenUserProfile, onReactPost }) => {
             const [text, setText] = useState('');
             const [commentText, setCommentText] = useState('');
             const [postImage, setPostImage] = useState(null);
             const [isOptimizing, setIsOptimizing] = useState(false);
+            const [postCostError, setPostCostError] = useState('');
             const fileInputRef = useRef(null);
 
             const handleImageSelect = async (e) => {
@@ -387,7 +466,6 @@
 
                 setIsOptimizing(true);
                 try {
-                    // تطبيق محرك الضغط وتجريد البيانات الحساسة فورياً
                     const compressed = await optimizeAndSecureImage(file, 800, 0.65);
                     if (compressed) {
                         setPostImage(compressed);
@@ -401,7 +479,13 @@
 
             const handlePublish = () => {
                 if (!text.trim() && !postImage) return;
-                createPost(text, postImage);
+                setPostCostError('');
+
+                const result = createPost(text, postImage);
+                if (result && !result.success) {
+                    setPostCostError(result.msg || 'رصيدك غير كافٍ');
+                    return;
+                }
                 setText('');
                 setPostImage(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';
@@ -411,19 +495,26 @@
 
             return (
                 <div className="space-y-5 animate-in fade-in slide-in-bottom scroll-smooth pb-36 md:pb-12">
-                    {/* بطاقة إنشاء المنشور */}
+                    {/* بطاقة إنشاء المنشور مع تكلفة 1 كوين */}
                     <div className={`bg-white p-5 md:p-6 rounded-[2.2rem] border border-gray-100 ${UI_CONFIG.cardShadow} transition-all`}>
                         <textarea 
-                            placeholder="ما الذي ترغب في مشاركته اليوم؟" 
+                            placeholder="ما الذي ترغب في مشاركته اليوم؟ (التكلفة: 1 كوين)" 
                             className="w-full p-4 bg-gray-50 rounded-2xl resize-none outline-none focus:ring-2 focus:ring-purple-200 transition-all h-24 text-gray-700 font-bold text-sm leading-relaxed" 
                             value={text} 
-                            onChange={e => setText(e.target.value)} 
+                            onChange={e => { setText(e.target.value); setPostCostError(''); }} 
                         />
 
                         {isOptimizing && (
                             <div className="my-2 p-3 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
                                 <MotionIcon iconName="RefreshCcw" size={15} className="animate-spin" />
                                 <span>جارٍ ضغط وتأمين الصورة بأعلى سرعة...</span>
+                            </div>
+                        )}
+
+                        {postCostError && (
+                            <div className="my-2 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-black flex items-center justify-between border border-red-100 animate-shake">
+                                <span>{postCostError}</span>
+                                <button type="button" onClick={() => setPostCostError('')}><MotionIcon iconName="X" size={13} /></button>
                             </div>
                         )}
 
@@ -458,7 +549,10 @@
                                     <MotionIcon iconName="Image" size={16} />
                                     <span>إضافة صورة</span>
                                 </label>
-                                <span className="text-[11px] text-gray-400 font-bold hidden sm:inline">مشاركة عامة</span>
+                                <span className="text-[11px] bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 rounded-lg font-black flex items-center gap-1">
+                                    <MotionIcon iconName="Coins" size={12} className="text-amber-600" />
+                                    <span>1 كوين / منشور</span>
+                                </span>
                             </div>
 
                             <button 
@@ -468,17 +562,24 @@
                                 className="group px-6 py-2.5 bg-[#2E1A47] text-white rounded-xl font-black shadow-lg transform active:scale-95 transition-all flex items-center gap-2 text-sm disabled:opacity-40"
                             >
                                 <MotionIcon iconName="Send" size={16} className="rotate-180 group-hover:-translate-x-1" />
-                                <span>نشر</span>
+                                <span>نشر (1 كوين)</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* قائمة المنشورات */}
+                    {/* قائمة المنشورات مع التفاعلات */}
                     <div className="space-y-5">
                         {posts.map((post) => {
                             const isAdminPost = post.authorRole === 'admin' || post.authorId === 'admin-1';
                             const authorUser = userList.find(u => u.id === post.authorId);
                             const isAuthorVerified = Boolean(authorUser ? authorUser.verified : post.authorVerified);
+
+                            // حساب وتجهيز التفاعلات
+                            const reactions = post.reactions || {};
+                            const myReaction = reactions[user?.id];
+                            const likesCount = Object.values(reactions).filter(r => r === 'like').length;
+                            const heartsCount = Object.values(reactions).filter(r => r === 'heart').length;
+                            const laughsCount = Object.values(reactions).filter(r => r === 'laugh').length;
 
                             return (
                                 <div key={post.id} className={`bg-white p-6 md:p-7 rounded-[2.2rem] border relative overflow-hidden transition-all duration-300 ${isAdminPost ? 'border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.1)] bg-gradient-to-b from-white to-amber-50/20' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
@@ -530,7 +631,43 @@
                                         </div>
                                     )}
 
-                                    <div className="flex items-center justify-between border-t border-gray-100 pt-3.5">
+                                    {/* شريط التفاعلات (لايك 👍 - قلب ❤️ - أضحكني 😂) مع زر التعليقات */}
+                                    <div className="flex flex-wrap items-center justify-between border-t border-gray-100 pt-3.5 gap-2">
+                                        <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-2xl border border-gray-100">
+                                            {/* زر لايك */}
+                                            <button 
+                                                type="button" 
+                                                onClick={() => onReactPost(post.id, 'like')} 
+                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all text-xs font-black ${myReaction === 'like' ? 'bg-blue-600 text-white shadow-sm scale-105' : 'text-gray-600 hover:bg-white'}`}
+                                                title="أعجبني"
+                                            >
+                                                <span>👍</span>
+                                                <span>{likesCount > 0 ? likesCount : 'إعجاب'}</span>
+                                            </button>
+
+                                            {/* زر قلب */}
+                                            <button 
+                                                type="button" 
+                                                onClick={() => onReactPost(post.id, 'heart')} 
+                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all text-xs font-black ${myReaction === 'heart' ? 'bg-rose-600 text-white shadow-sm scale-105' : 'text-gray-600 hover:bg-white'}`}
+                                                title="أحببته"
+                                            >
+                                                <span>❤️</span>
+                                                <span>{heartsCount > 0 ? heartsCount : 'قلب'}</span>
+                                            </button>
+
+                                            {/* زر أضحكني */}
+                                            <button 
+                                                type="button" 
+                                                onClick={() => onReactPost(post.id, 'laugh')} 
+                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all text-xs font-black ${myReaction === 'laugh' ? 'bg-amber-500 text-white shadow-sm scale-105' : 'text-gray-600 hover:bg-white'}`}
+                                                title="أضحكني"
+                                            >
+                                                <span>😂</span>
+                                                <span>{laughsCount > 0 ? laughsCount : 'أضحكني'}</span>
+                                            </button>
+                                        </div>
+
                                         <button 
                                             type="button" 
                                             onClick={() => { setActiveCommentPost(activeCommentPost === post.id ? null : post.id); setActiveReplyToId(null); }} 
@@ -1093,6 +1230,7 @@
             const [recipient, setRecipient] = useState('');
             const [amount, setAmount] = useState('');
             const [feedback, setFeedback] = useState(null);
+            const [isTransferring, setIsTransferring] = useState(false);
 
             const exactMatchedUser = useMemo(() => {
                 const clean = recipient.trim().replace(/^@/, '').toLowerCase();
@@ -1100,15 +1238,41 @@
                 return users.find(u => u.username.toLowerCase() === clean && u.id !== user?.id) || null;
             }, [recipient, users, user]);
 
-            const handleSendCoins = (e) => {
+            const handleSendCoins = async (e) => {
                 e.preventDefault();
                 setFeedback(null);
-                const res = onTransfer(recipient, parseFloat(amount));
-                if (res.success) {
-                    setFeedback({ type: 'success', msg: res.msg });
-                    setRecipient(''); setAmount('');
-                } else {
-                    setFeedback({ type: 'error', msg: res.msg });
+                if (isTransferring) return;
+
+                const parsedAmount = parseFloat(amount);
+                if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                    setFeedback({ type: 'error', msg: 'يرجى كتابة مبلغ صحيح أكبر من الصفر' });
+                    return;
+                }
+
+                setIsTransferring(true);
+                try {
+                    const res = await onTransfer(recipient, parsedAmount);
+                    if (res && res.success) {
+                        setFeedback({ type: 'success', msg: res.msg });
+                        
+                        // إشعار نظام حقيقي على شاشة الهاتف مع صوت نقي واهتزاز
+                        triggerSystemNotification(
+                            "✅ تم إرسال الكوينز بنجاح!",
+                            `تم تحويل ${parsedAmount.toFixed(2)} كوين إلى @${exactMatchedUser?.username || recipient} بنجاح.`,
+                            `transfer-out-${Date.now()}`
+                        );
+
+                        // تصفير وإيقاف مدخلات الإرسال لمنع التكرار والضغط العشوائي
+                        setRecipient(''); 
+                        setAmount('');
+                    } else {
+                        setFeedback({ type: 'error', msg: res?.msg || 'تعذر إتمام التحويل' });
+                    }
+                } catch (err) {
+                    setFeedback({ type: 'error', msg: 'حدث خطأ بالاتصال أثناء التحويل، يرجى المحاولة ثانية' });
+                } finally {
+                    // إيقاف مؤشر وعداد الإرسال فوراً
+                    setIsTransferring(false);
                 }
             };
 
@@ -1131,7 +1295,7 @@
                             </div>
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold text-amber-300">
                                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                                محفظة نشطة
+                                محفظة نشطة وتزامن فوري
                             </div>
                         </div>
                     </div>
@@ -1142,8 +1306,8 @@
                                 <MotionIcon iconName="Send" size={20} className="rotate-180" />
                             </div>
                             <div>
-                                <h3 className="font-black text-base text-[#2E1A47]">إرسال عملات</h3>
-                                <p className="text-[11px] text-gray-400 font-bold">تحويل رصيد بالبحث الدقيق باسم المستخدم (المطلوب فقط)</p>
+                                <h3 className="font-black text-base text-[#2E1A47]">إرسال عملات (تحديث فوري)</h3>
+                                <p className="text-[11px] text-gray-400 font-bold">تحويل رصيد بالبحث الدقيق باسم المستخدم والمزامنة اللحظية</p>
                             </div>
                         </div>
 
@@ -1178,7 +1342,7 @@
                                         </div>
                                         <div>
                                             <p className="font-black text-xs text-[#2E1A47]">{exactMatchedUser.name}</p>
-                                            <p className="text-[10px] text-purple-700 font-bold">@{exactMatchedUser.username} (الشخص المطلوب)</p>
+                                            <p className="text-[10px] text-purple-700 font-bold">@{exactMatchedUser.username} (المستلم المعتمد)</p>
                                         </div>
                                     </div>
                                     <span className="p-1.5 bg-green-500 text-white rounded-lg text-xs">
@@ -1204,9 +1368,22 @@
                                     className="w-full pr-12 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm border border-gray-100 focus:ring-2 focus:ring-amber-300"
                                 />
                             </div>
-                            <button type="submit" disabled={!exactMatchedUser || !amount} className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-[#2E1A47] font-black rounded-2xl shadow-lg hover:shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-40">
-                                <MotionIcon iconName="Send" size={18} className="rotate-180" />
-                                <span>تأكيد الإرسال</span>
+                            <button 
+                                type="submit" 
+                                disabled={!exactMatchedUser || !amount || isTransferring} 
+                                className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-[#2E1A47] font-black rounded-2xl shadow-lg hover:shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+                            >
+                                {isTransferring ? (
+                                    <>
+                                        <MotionIcon iconName="RefreshCcw" size={18} className="animate-spin" />
+                                        <span>جارٍ التحويل الفوري...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <MotionIcon iconName="Send" size={18} className="rotate-180" />
+                                        <span>تأكيد الإرسال الفوري</span>
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>
@@ -1729,10 +1906,67 @@
 
             const [viewingProfileUser, setViewingProfileUser] = useState(null);
 
+            // مرجع لتتبع الرسائل السابقة واكتشاف الرسائل الجديدة الواردة للإشعار
+            const prevMessagesCountRef = useRef(0);
+            const isInitialLoadRef = useRef(true);
+            const prevBalanceRef = useRef(null);
+
             const unreadMessagesCount = useMemo(() => {
                 if (!user) return 0;
                 return messages.filter(m => !m.groupId && m.to === user.id && !m.read).length;
             }, [messages, user]);
+
+            // الاستماع للرسائل الواردة وإطلاق الإشعارات فوراً عند وصول رسالة جديدة
+            useEffect(() => {
+                if (!user || messages.length === 0) return;
+
+                if (isInitialLoadRef.current) {
+                    prevMessagesCountRef.current = messages.length;
+                    isInitialLoadRef.current = false;
+                    return;
+                }
+
+                if (messages.length > prevMessagesCountRef.current) {
+                    const latestMsg = messages[messages.length - 1];
+                    if (latestMsg && latestMsg.from !== user.id) {
+                        const isForMe = latestMsg.to === user.id;
+                        const isMyGroup = latestMsg.groupId && groups.some(g => g.id === latestMsg.groupId && (g.members || []).includes(user.id));
+                        
+                        if (isForMe || isMyGroup) {
+                            const senderName = latestMsg.fromName || 'مستخدم';
+                            const title = isMyGroup ? `رسالة في مجموعة جديدة` : `رسالة جديدة من ${senderName}`;
+                            const body = latestMsg.text?.slice(0, 70) || 'محتوى رسالة جديد';
+                            
+                            triggerSystemNotification(title, body, `msg-${latestMsg.id}`);
+                        }
+                    }
+                }
+
+                prevMessagesCountRef.current = messages.length;
+            }, [messages.length, user, groups]);
+
+            // إشعار فوري وتنبيه صوتي واهتزاز عند استلام عملات جديدة (كوينز)
+            useEffect(() => {
+                if (!user) return;
+                const currentBal = Number(user.balance || 0);
+
+                if (prevBalanceRef.current !== null && currentBal > prevBalanceRef.current) {
+                    const gained = (currentBal - prevBalanceRef.current).toFixed(2);
+                    triggerSystemNotification(
+                        "💰 استلام عملات جديدة!",
+                        `تمت إضافة ${gained} كوين إلى محفظتك بنجاح.`,
+                        `coin-${Date.now()}`
+                    );
+                }
+                prevBalanceRef.current = currentBal;
+            }, [user?.balance]);
+
+            // طلب إذن الإشعارات تلقائياً فور تسجيل الدخول
+            useEffect(() => {
+                if (user) {
+                    requestNotificationPermission();
+                }
+            }, [user]);
 
             const handleOpenUserProfile = (authorId) => {
                 if (!authorId) return;
@@ -1817,6 +2051,20 @@
                             const list = Array.isArray(data) ? data : Object.values(data);
                             setUsers(list);
                             localStorage.setItem(`app_users_${storageVersion}`, JSON.stringify(list));
+
+                            // تحديث مباشر لبيانات المستخدم الحالي ورصيده عند أي تغيير سحابي
+                            if (user) {
+                                const meUpdated = list.find(u => u.id === user.id);
+                                if (meUpdated) {
+                                    setUser(prev => ({
+                                        ...prev,
+                                        balance: meUpdated.balance,
+                                        history: meUpdated.history || [],
+                                        verified: meUpdated.verified,
+                                        status: meUpdated.status
+                                    }));
+                                }
+                            }
                         } else {
                             rtdb.ref('risala_users').set(initialUsers);
                         }
@@ -1983,7 +2231,17 @@
             };
 
             const createPost = (content, image = null) => {
-                if (!content.trim() && !image) return;
+                if (!content.trim() && !image) return { success: false, msg: "يرجى كتابة نص أو إضافة صورة" };
+
+                // فحص رصيد المستخدم: التغريدة تكلف 1 كوين
+                const isUserAdmin = user.role === 'admin' || user.id === 'admin-1';
+                const currentBalance = Number(user.balance || 0);
+
+                if (!isUserAdmin && currentBalance < 1) {
+                    return { success: false, msg: "رصيدك غير كافٍ! تكلفة نشر المنشور هي 1 كوين." };
+                }
+
+                const currentTime = new Date().toLocaleTimeString('ar-IQ');
                 const newPost = {
                     id: Date.now().toString(),
                     authorId: user.id,
@@ -1995,9 +2253,71 @@
                     content: String(content || ''),
                     image: image || null,
                     timestamp: new Date().toISOString(),
+                    reactions: {}, // دعم التفاعلات: { [userId]: 'like' | 'heart' | 'laugh' }
                     comments: []
                 };
+
                 const updatedPosts = [newPost, ...posts];
+                setPosts(updatedPosts);
+
+                // خصم 1 كوين من المستخدم وتسجيلها في السجل المالي
+                if (!isUserAdmin) {
+                    const newBal = Math.max(0, currentBalance - 1);
+                    const historyItem = {
+                        type: 'out',
+                        msg: 'نشر منشور (تغريدة)',
+                        amount: 1.00,
+                        time: currentTime
+                    };
+
+                    const updatedUsers = users.map(u => {
+                        if (u.id === user.id) {
+                            return {
+                                ...u,
+                                balance: newBal,
+                                history: [...(u.history || []), historyItem]
+                            };
+                        }
+                        return u;
+                    });
+
+                    setUsers(updatedUsers);
+                    setUser(prev => ({
+                        ...prev,
+                        balance: newBal,
+                        history: [...(prev.history || []), historyItem]
+                    }));
+
+                    if (rtdb) {
+                        rtdb.ref('risala_users').set(updatedUsers);
+                    }
+                }
+
+                if (rtdb) {
+                    rtdb.ref('risala_posts').set(updatedPosts);
+                }
+
+                return { success: true };
+            };
+
+            // دالة التفاعل مع المنشورات (لايك 👍، قلب ❤️، أضحكني 😂)
+            const handleReactPost = (postId, reactionType) => {
+                if (!user) return;
+
+                const updatedPosts = posts.map(p => {
+                    if (p.id !== postId) return p;
+                    const reactions = { ...(p.reactions || {}) };
+
+                    // إذا كان قد تفاعل بنفس التفاعل سابقاً يتم إلغاؤه، وإلا يتم تعيين التفاعل الجديد
+                    if (reactions[user.id] === reactionType) {
+                        delete reactions[user.id];
+                    } else {
+                        reactions[user.id] = reactionType;
+                    }
+
+                    return { ...p, reactions };
+                });
+
                 setPosts(updatedPosts);
                 if (rtdb) {
                     rtdb.ref('risala_posts').set(updatedPosts);
@@ -2010,13 +2330,15 @@
                     id: Date.now().toString(),
                     authorId: user.id,
                     authorName: user.name,
+                    authorRole: user.role,
                     authorVerified: !!user.verified,
+                    profileColor: user.profileColor,
                     avatar: user.avatar || null,
                     text: String(text),
                     timestamp: new Date().toISOString(),
-                    profileColor: user.profileColor,
                     replies: []
                 };
+
                 const updatedPosts = posts.map(p => {
                     if (p.id !== postId) return p;
                     if (!parentId) return { ...p, comments: [...(p.comments || []), newComment] };
@@ -2233,47 +2555,6 @@
                 if (rtdb) rtdb.ref('risala_loans').set(updatedLoans);
             };
 
-            const handleTransferCoins = (recipientUsername, amount) => {
-                const targetU = recipientUsername.trim().toLowerCase();
-                if (!targetU || !amount || isNaN(amount) || amount <= 0) {
-                    return { success: false, msg: "يرجى تحديد اسم مستخدم ومبلغ صحيحين" };
-                }
-                if (targetU === user.username.toLowerCase()) {
-                    return { success: false, msg: "لا يمكنك التحويل لنفسك" };
-                }
-                const recipientObj = users.find(u => u.username.toLowerCase() === targetU);
-                if (!recipientObj) {
-                    return { success: false, msg: "المستلم غير موجود" };
-                }
-                if (recipientObj.status === 'banned') {
-                    return { success: false, msg: "هذا الحساب معطل حالياً" };
-                }
-                if (user.role !== 'admin' && Number(user.balance || 0) < amount) {
-                    return { success: false, msg: "رصيدك غير كافٍ لإتمام العملية" };
-                }
-
-                const currentTime = new Date().toLocaleTimeString('ar-IQ');
-                const updatedSenderBalance = user.role === 'admin' ? user.balance : Number(user.balance || 0) - amount;
-                const senderHistoryItem = { type: 'out', msg: `حوالة إلى @${recipientObj.username}`, amount, time: currentTime };
-                const updatedRecipientBalance = Number(recipientObj.balance || 0) + amount;
-                const recipientHistoryItem = { type: 'in', msg: `استلام من @${user.username}`, amount, time: currentTime };
-
-                const updatedUsers = users.map(u => {
-                    if (u.id === user.id) {
-                        return { ...u, balance: updatedSenderBalance, history: [...(u.history || []), senderHistoryItem] };
-                    }
-                    if (u.id === recipientObj.id) {
-                        return { ...u, balance: updatedRecipientBalance, history: [...(u.history || []), recipientHistoryItem] };
-                    }
-                    return u;
-                });
-
-                setUsers(updatedUsers);
-                if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
-
-                return { success: true, msg: `تم إرسال ${amount.toFixed(2)} كوين إلى @${recipientObj.username} بنجاح` };
-            };
-
             const handleAdjustCoinsByAdmin = (targetUserId, deltaAmount) => {
                 if (isNaN(deltaAmount) || deltaAmount === 0) return;
                 const currentTime = new Date().toLocaleTimeString('ar-IQ');
@@ -2302,6 +2583,84 @@
                 setSelectedChatTarget(null);
                 setView('login');
                 localStorage.removeItem('app_session_v_risala_unified_v2');
+            };
+
+            const handleTransferCoins = async (recipientUsername, amount) => {
+                const targetU = String(recipientUsername || '').trim().replace(/^@/, '').toLowerCase();
+                if (!targetU || !amount || isNaN(amount) || amount <= 0) {
+                    return { success: false, msg: "يرجى تحديد اسم مستخدم ومبلغ صحيحين" };
+                }
+                if (user && targetU === user.username.toLowerCase()) {
+                    return { success: false, msg: "لا يمكنك التحويل لنفسك" };
+                }
+                const recipientObj = users.find(u => u.username.toLowerCase() === targetU);
+                if (!recipientObj) {
+                    return { success: false, msg: "المستلم غير موجود بالمنظومة" };
+                }
+                if (recipientObj.status === 'banned') {
+                    return { success: false, msg: "هذا الحساب معطل حالياً" };
+                }
+
+                const currentSenderBal = Number(user.balance || 0);
+                if (user.role !== 'admin' && currentSenderBal < amount) {
+                    return { success: false, msg: "رصيدك غير كافٍ لإتمام العملية" };
+                }
+
+                const currentTime = new Date().toLocaleTimeString('ar-IQ');
+                const isSenderAdmin = user.role === 'admin' || user.id === 'admin-1';
+                const updatedSenderBalance = isSenderAdmin ? user.balance : Math.max(0, currentSenderBal - amount);
+                const senderHistoryItem = {
+                    type: 'out',
+                    msg: `حوالة إلى @${recipientObj.username}`,
+                    amount: amount,
+                    time: currentTime
+                };
+
+                const updatedRecipientBalance = Number(recipientObj.balance || 0) + amount;
+                const recipientHistoryItem = {
+                    type: 'in',
+                    msg: `استلام من @${user.username}`,
+                    amount: amount,
+                    time: currentTime
+                };
+
+                const updatedUsers = users.map(u => {
+                    if (u.id === user.id) {
+                        return {
+                            ...u,
+                            balance: updatedSenderBalance,
+                            history: [...(u.history || []), senderHistoryItem]
+                        };
+                    }
+                    if (u.id === recipientObj.id) {
+                        return {
+                            ...u,
+                            balance: updatedRecipientBalance,
+                            history: [...(u.history || []), recipientHistoryItem]
+                        };
+                    }
+                    return u;
+                });
+
+                setUsers(updatedUsers);
+                setUser(prev => ({
+                    ...prev,
+                    balance: updatedSenderBalance,
+                    history: [...(prev.history || []), senderHistoryItem]
+                }));
+
+                if (rtdb) {
+                    try {
+                        await rtdb.ref('risala_users').set(updatedUsers);
+                    } catch (e) {
+                        console.error("خطأ في المزامنة السحابية للرصيد:", e);
+                    }
+                }
+
+                return {
+                    success: true,
+                    msg: `تم إرسال ${amount.toFixed(2)} كوين إلى @${recipientObj.username} بنجاح`
+                };
             };
 
             const handleDeletePost = (id) => {
@@ -2532,6 +2891,7 @@
                                         activeCommentPost={activeCommentPost} setActiveCommentPost={setActiveCommentPost}
                                         activeReplyToId={activeReplyToId} setActiveReplyToId={setActiveReplyToId}
                                         onOpenUserProfile={handleOpenUserProfile}
+                                        onReactPost={handleReactPost}
                                     />
                                 )}
                                 {view === 'messages' && (
