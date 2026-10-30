@@ -18,6 +18,21 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f0a17',
+                        darkCard: '#1a1128',
+                        darkBorder: '#2f1f47',
+                        darkHover: '#25173a'
+                    }
+                }
+            }
+        }
+    </script>
     <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -40,6 +55,12 @@
             background-color: #FDFCF8;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark {
+            background-color: #0f0a17;
+            color: #f3f4f6;
         }
 
         /* --- Motion Graphics Icon Animations --- */
@@ -72,7 +93,7 @@
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .animate-shake { animation: shake 0.4s ease-in-out; }
 
-        /* --- أنيميشن تفاعلات فيسبوك (Facebook Reactions Animation) --- */
+        /* --- أنيميشن تفاعلات فيسبوك --- */
         @keyframes fb-pop {
             0% { transform: scale(1); }
             40% { transform: scale(1.4) translateY(-6px); }
@@ -102,8 +123,10 @@
 
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-thumb { background: #2E1A47; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #8B5CF6; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #D1C4E9; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #472d6b; }
 
         .animate-in { animation-duration: 0.5s; animation-fill-mode: both; }
         .fade-in { animation-name: fadeIn; }
@@ -119,9 +142,29 @@
             backdrop-filter: blur(14px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
+        .dark .glass-morphism {
+            background: rgba(26, 17, 40, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
 
         .gold-glow {
             box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.35);
+        }
+
+        /* سهم عجلة الحظ */
+        .wheel-pointer {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 26px solid #EF4444;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+            z-index: 30;
         }
     </style>
 </head>
@@ -199,7 +242,10 @@
             Camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
             Heart: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
             ThumbsUp: "M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3",
-            Smile: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"
+            Smile: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01",
+            Sun: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z",
+            Moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
+            Dices: "M4 4h16v16H4z M9 9h.01 M15 9h.01 M12 12h.01 M9 15h.01 M15 15h.01"
         };
 
         const MotionIcon = ({ iconName, size = 20, className = "" }) => {
@@ -248,7 +294,7 @@
                 accent: '#8B5CF6',
                 gold: '#F59E0B'
             },
-            glassEffect: "backdrop-blur-md bg-white/75 border border-white/20",
+            glassEffect: "backdrop-blur-md bg-white/75 dark:bg-[#1a1128]/80 border border-white/20 dark:border-white/5",
             cardShadow: "shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(46,26,71,0.08)] transition-all duration-300",
             inkGradient: "bg-gradient-to-br from-[#2E1A47] to-[#442C66]",
             goldGradient: "bg-gradient-to-r from-amber-400 to-yellow-600"
@@ -271,9 +317,6 @@
             return "متصفح الويب";
         };
 
-        /**
-         * نظام صوتي نقي واحترافي للتنبيهات بدون ملفات صوت خارجية (Web Audio API)
-         */
         const playNotificationSound = () => {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -281,13 +324,12 @@
                 const ctx = new AudioCtx();
                 const now = ctx.currentTime;
                 
-                // نغمة تنبيه ناعمة ومميزة
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, now); // D5
-                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+                osc.frequency.setValueAtTime(587.33, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
                 
                 gain.gain.setValueAtTime(0.001, now);
                 gain.gain.linearRampToValueAtTime(0.3, now + 0.04);
@@ -301,9 +343,6 @@
             } catch (e) {}
         };
 
-        /**
-         * نغمة ناعمة مميزة وفخمة عند نشر تغريدة بنجاح (Chime Melody Success)
-         */
         const playPostPublishSound = () => {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -311,7 +350,6 @@
                 const ctx = new AudioCtx();
                 const now = ctx.currentTime;
 
-                // لحن تصاعدي ثلاثي النغمات متناغم وفخم (C6 -> E6 -> G6)
                 const notes = [1046.50, 1318.51, 1567.98];
                 notes.forEach((freq, index) => {
                     const osc = ctx.createOscillator();
@@ -334,9 +372,6 @@
             } catch (e) {}
         };
 
-        /**
-         * صوت موحد ناعم وأنيق جداً (Bubble Pop Synth) لجميع التفاعلات (لايك، قلب، أضحكني)
-         */
         const playReactionSound = () => {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -347,7 +382,6 @@
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
 
-                // قفزة ترددية سريعة ومريحة للأذن بنمط البوب الخفيف
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(440, now);
                 osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
@@ -364,9 +398,46 @@
             } catch (e) {}
         };
 
-        /**
-         * إطلاق إشعار نظام حقيقي على شاشة الهاتف عبر Service Worker
-         */
+        const playWheelTickSound = () => {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(650, ctx.currentTime);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.04);
+            } catch (e) {}
+        };
+
+        const playWinSound = () => {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                    gain.gain.setValueAtTime(0.001, now + i * 0.08);
+                    gain.gain.linearRampToValueAtTime(0.2, now + i * 0.08 + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.25);
+                });
+            } catch(e){}
+        };
+
         const triggerSystemNotification = (title, body, tag = 'risala-notification') => {
             playNotificationSound();
             
@@ -403,7 +474,7 @@
         };
 
         const optimizeAndSecureImage = (file, maxDimension = 800, quality = 0.65) => {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 if (!file || !file.type.startsWith('image/')) {
                     return resolve(null);
                 }
@@ -453,9 +524,9 @@
         };
 
         const SidebarItem = ({ iconName, label, active, onClick, badge }) => (
-            <button type="button" onClick={onClick} className={`group flex items-center justify-between w-full p-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-white/10 text-white shadow-inner font-black' : 'text-purple-200 hover:bg-white/5 font-bold'}`}>
+            <button type="button" onClick={onClick} className={`group flex items-center justify-between w-full p-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-white/10 dark:bg-purple-900/30 text-white shadow-inner font-black' : 'text-purple-200 dark:text-purple-300 hover:bg-white/5 font-bold'}`}>
                 <div className="flex items-center gap-3.5">
-                    <div className={`p-2.5 rounded-xl transition-all duration-300 relative ${active ? 'bg-purple-500 text-white shadow-lg active-pulse' : 'bg-white/5 text-purple-200'}`}>
+                    <div className={`p-2.5 rounded-xl transition-all duration-300 relative ${active ? 'bg-purple-500 text-white shadow-lg active-pulse' : 'bg-white/5 text-purple-200 dark:text-purple-300'}`}>
                         <MotionIcon iconName={iconName} size={20} />
                         {!active && badge && <span className="absolute -top-1 -right-1 bg-red-500 w-2.5 h-2.5 rounded-full border-2 border-[#2E1A47] animate-pulse"></span>}
                     </div>
@@ -466,14 +537,255 @@
         );
 
         const MobileNavItem = ({ iconName, active, onClick, badge, label }) => (
-            <button type="button" onClick={onClick} className={`p-2 rounded-2xl transition-all duration-300 group relative flex flex-col items-center gap-1 ${active ? 'text-[#2E1A47] font-black scale-105' : 'text-gray-400 font-bold'}`}>
-                <div className={`p-1.5 rounded-xl transition-colors ${active ? 'bg-purple-100 text-[#2E1A47]' : ''}`}>
+            <button type="button" onClick={onClick} className={`p-2 rounded-2xl transition-all duration-300 group relative flex flex-col items-center gap-1 ${active ? 'text-[#2E1A47] dark:text-purple-300 font-black scale-105' : 'text-gray-400 dark:text-gray-500 font-bold'}`}>
+                <div className={`p-1.5 rounded-xl transition-colors ${active ? 'bg-purple-100 dark:bg-purple-900/40 text-[#2E1A47] dark:text-purple-200' : ''}`}>
                     <MotionIcon iconName={iconName} size={22} className={active ? "active-pulse" : ""} />
                 </div>
                 <span className="text-[10px]">{label}</span>
-                {badge && <span className="absolute top-1 right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full ring-2 ring-white animate-bounce">{badge}</span>}
+                {badge && <span className="absolute top-1 right-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full ring-2 ring-white dark:ring-gray-900 animate-bounce">{badge}</span>}
             </button>
         );
+
+        // مكون زر الوضع الليلي الأنيق
+        const DarkModeToggle = ({ isDark, onToggle }) => (
+            <button
+                type="button"
+                onClick={onToggle}
+                className="p-2 md:p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center bg-purple-50/80 hover:bg-purple-100 dark:bg-white/10 dark:hover:bg-white/20 text-[#2E1A47] dark:text-amber-400 border border-purple-200/50 dark:border-white/10 shadow-xs active:scale-95"
+                title={isDark ? "تفعيل الوضع النهاري" : "تفعيل الوضع الليلي"}
+            >
+                <MotionIcon iconName={isDark ? "Sun" : "Moon"} size={17} className={isDark ? "text-amber-400" : "text-purple-800"} />
+            </button>
+        );
+
+        // مكون عجلة الحظ (Lucky Wheel Modal)
+        const LuckyWheelModal = ({ isOpen, onClose, onSpinWin, lastSpinTime, isFreeSpinActive, setFreeSpinActive }) => {
+            const [spinning, setSpinning] = useState(false);
+            const [rotation, setRotation] = useState(0);
+            const [resultText, setResultText] = useState(null);
+            const [timeLeft, setTimeLeft] = useState(0);
+
+            // احتساب الوقت المتبقي للمحاولة القادمة (3 ساعات = 10800000 مللي ثانية)
+            const COOLDOWN_MS = 3 * 60 * 60 * 1000;
+
+            useEffect(() => {
+                if (!isOpen) return;
+
+                const checkCooldown = () => {
+                    if (isFreeSpinActive) {
+                        setTimeLeft(0);
+                        return;
+                    }
+                    if (lastSpinTime) {
+                        const now = Date.now();
+                        const diff = (lastSpinTime + COOLDOWN_MS) - now;
+                        setTimeLeft(diff > 0 ? diff : 0);
+                    } else {
+                        setTimeLeft(0);
+                    }
+                };
+
+                checkCooldown();
+                const timer = setInterval(checkCooldown, 1000);
+                return () => clearInterval(timer);
+            }, [isOpen, lastSpinTime, isFreeSpinActive]);
+
+            const formatTime = (ms) => {
+                const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            };
+
+            // قطاعات العجلة الـ 6 (60 درجة لكل قطاع)
+            // الترتيب: 
+            // 0: 1 كوين (25%)
+            // 1: 100 كوين (مستحيل 0%)
+            // 2: 0 كوين (25%)
+            // 3: 10 كوين (مستحيل 0%)
+            // 4: إعادة المحاولة (50%)
+            // 5: 0 كوين (حصة من الـ 25%)
+            const segments = [
+                { id: '1c', label: '1 كوين', color: '#8B5CF6', textCol: '#FFFFFF' },
+                { id: '100c', label: '100 كوين 🔥', color: '#EF4444', textCol: '#FFFFFF' },
+                { id: '0c_1', label: '0 كوين ❌', color: '#6B7280', textCol: '#FFFFFF' },
+                { id: '10c', label: '10 كوين 💎', color: '#F59E0B', textCol: '#1F2937' },
+                { id: 'retry', label: 'إعادة محاولة 🔄', color: '#10B981', textCol: '#FFFFFF' },
+                { id: '0c_2', label: '0 كوين ❌', color: '#4B5563', textCol: '#FFFFFF' }
+            ];
+
+            const spin = () => {
+                if (spinning || (timeLeft > 0 && !isFreeSpinActive)) return;
+                setSpinning(true);
+                setResultText(null);
+
+                // حساب النتيجة وفق القواعد الصارمة:
+                // 50% إعادة محاولة
+                // 25% فوز بـ 1 كوين
+                // 25% فوز بـ 0 كوين
+                // 10 و 100 كوين مستحيل بنسبة 0%
+                const rand = Math.random() * 100;
+                let targetIndex = 4; // الافتراضي: إعادة محاولة (50%)
+
+                if (rand < 50) {
+                    targetIndex = 4; // إعادة محاولة (50%)
+                } else if (rand < 75) {
+                    targetIndex = 0; // 1 كوين (25%)
+                } else {
+                    targetIndex = Math.random() > 0.5 ? 2 : 5; // 0 كوين (25%)
+                }
+
+                const segmentAngle = 360 / segments.length; // 60 deg
+                const targetCenterAngle = (targetIndex * segmentAngle) + (segmentAngle / 2);
+                
+                const extraRounds = (5 + Math.floor(Math.random() * 3)) * 360;
+                const finalTargetRotation = rotation + extraRounds + (360 - (rotation % 360)) + (360 - targetCenterAngle);
+
+                let tickInterval = setInterval(() => {
+                    playWheelTickSound();
+                }, 140);
+
+                setTimeout(() => {
+                    clearInterval(tickInterval);
+                    tickInterval = setInterval(() => {
+                        playWheelTickSound();
+                    }, 280);
+                }, 2200);
+
+                setRotation(finalTargetRotation);
+
+                setTimeout(() => {
+                    clearInterval(tickInterval);
+                    setSpinning(false);
+
+                    if (targetIndex === 0) {
+                        playWinSound();
+                        setResultText({ type: 'win', msg: '🎉 مبارك! فزت بـ 1 كوين تمت إضافتها لمحفظتك!', amount: 1 });
+                        setFreeSpinActive(false);
+                        onSpinWin(1, true); // true تعني تطبيق فترة الانتظار 3 ساعات
+                    } else if (targetIndex === 4) {
+                        playReactionSound();
+                        setResultText({ type: 'retry', msg: '🔄 فرصة جديدة! أعد المحاولة مجاناً الآن.', amount: 0 });
+                        setFreeSpinActive(true);
+                        onSpinWin(0, false); // إعادة تدوير مجانية فورية
+                    } else {
+                        setResultText({ type: 'zero', msg: '😔 حظ أوفر في المرات القادمة! ربحت 0 كوين.', amount: 0 });
+                        setFreeSpinActive(false);
+                        onSpinWin(0, true); // تطبيق فترة الانتظار 3 ساعات
+                    }
+                }, 4000);
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-[320] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in zoom-in-95">
+                    <div className="bg-white dark:bg-[#1a1128] rounded-[2.5rem] p-6 max-w-sm w-full text-center shadow-2xl border border-amber-400 relative overflow-hidden">
+                        <button 
+                            type="button" 
+                            disabled={spinning}
+                            onClick={onClose} 
+                            className="absolute top-4 left-4 p-2 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-gray-300 rounded-xl transition-all"
+                        >
+                            <MotionIcon iconName="X" size={16} />
+                        </button>
+
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <span className="text-xl">🎡</span>
+                            <h3 className="text-xl font-black text-[#2E1A47] dark:text-amber-400">عجلة الحظ الدورية</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mb-4">
+                            فرصة لربح كوينز كل 3 ساعات!
+                        </p>
+
+                        {/* إطار العجلة مع المؤشر */}
+                        <div className="relative w-64 h-64 mx-auto my-3 flex items-center justify-center">
+                            <div className="wheel-pointer"></div>
+                            
+                            <div 
+                                className="w-60 h-60 rounded-full border-4 border-amber-400 relative overflow-hidden shadow-2xl transition-all duration-[4000ms] ease-[cubic-bezier(0.15,0.9,0.2,1)]"
+                                style={{
+                                    transform: `rotate(${rotation}deg)`,
+                                    background: `conic-gradient(
+                                        #8B5CF6 0deg 60deg,
+                                        #EF4444 60deg 120deg,
+                                        #6B7280 120deg 180deg,
+                                        #F59E0B 180deg 240deg,
+                                        #10B981 240deg 300deg,
+                                        #4B5563 300deg 360deg
+                                    )`
+                                }}
+                            >
+                                {segments.map((seg, idx) => {
+                                    const rot = idx * 60 + 30;
+                                    return (
+                                        <div 
+                                            key={seg.id}
+                                            className="absolute w-full h-full flex items-start justify-center pt-3"
+                                            style={{
+                                                transform: `rotate(${rot}deg)`,
+                                                transformOrigin: 'center center'
+                                            }}
+                                        >
+                                            <span 
+                                                className="text-[11px] font-black drop-shadow-md select-none tracking-tighter"
+                                                style={{ color: seg.textCol }}
+                                            >
+                                                {seg.label}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* نقطة المنتصف الذهبية */}
+                                <div className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-300 border-2 border-white shadow-lg flex items-center justify-center text-xs font-black text-[#2E1A47]">
+                                    ★
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* شريط حالة المؤقت (3 ساعات) أو إمكانية التدوير */}
+                        {timeLeft > 0 && !isFreeSpinActive ? (
+                            <div className="my-2 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-center justify-center gap-2 text-xs font-black text-amber-700 dark:text-amber-300 animate-pulse">
+                                <MotionIcon iconName="Clock" size={15} />
+                                <span>المحاولة القادمة متاحة بعد: {formatTime(timeLeft)}</span>
+                            </div>
+                        ) : null}
+
+                        {resultText && (
+                            <div className={`mt-3 p-3 rounded-2xl text-xs font-black animate-in slide-in-bottom ${
+                                resultText.type === 'win' 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 border border-green-300' 
+                                    : resultText.type === 'retry'
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300'
+                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300'
+                            }`}>
+                                {resultText.msg}
+                            </div>
+                        )}
+
+                        <div className="mt-5 space-y-2">
+                            <button 
+                                type="button" 
+                                disabled={spinning || (timeLeft > 0 && !isFreeSpinActive)}
+                                onClick={spin} 
+                                className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-[#2E1A47] font-black rounded-2xl shadow-lg active:scale-95 disabled:opacity-40 transition-all text-sm flex items-center justify-center gap-2"
+                            >
+                                <MotionIcon iconName="RefreshCcw" size={16} className={spinning ? "animate-spin" : ""} />
+                                <span>
+                                    {spinning 
+                                        ? "جارٍ تدوير العجلة..." 
+                                        : (isFreeSpinActive 
+                                            ? "🔄 تدوير مجاني مجدداً!" 
+                                            : (timeLeft > 0 ? `انتظر ${formatTime(timeLeft)}` : "تدوير العجلة الآن"))}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
         const AuthForm = ({ view, setView, onLogin, onRegister }) => {
             const [name, setName] = useState('');
@@ -497,23 +809,23 @@
                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                 <MotionIcon iconName="User" className="text-gray-400 group-focus-within:text-purple-500" size={18} />
                             </div>
-                            <input type="text" placeholder="الاسم الكامل" value={name} onChange={e => setName(e.target.value)} className="w-full pr-12 pl-4 p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 border border-gray-100 font-bold text-sm" />
+                            <input type="text" placeholder="الاسم الكامل" value={name} onChange={e => setName(e.target.value)} className="w-full pr-12 pl-4 p-4 bg-gray-50 dark:bg-darkBg rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 border border-gray-100 dark:border-darkBorder font-bold text-sm text-gray-800 dark:text-gray-100" />
                         </div>
                     )}
                     <div className="relative group">
                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
                             <MotionIcon iconName="Fingerprint" className="text-gray-400 group-focus-within:text-purple-500" size={18} />
                         </div>
-                        <input type="text" placeholder="اسم المستخدم (Username)" value={username} onChange={e => setUsername(e.target.value)} className="w-full pr-12 pl-4 p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 border border-gray-100 font-bold text-sm" />
+                        <input type="text" placeholder="اسم المستخدم (Username)" value={username} onChange={e => setUsername(e.target.value)} className="w-full pr-12 pl-4 p-4 bg-gray-50 dark:bg-darkBg rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 border border-gray-100 dark:border-darkBorder font-bold text-sm text-gray-800 dark:text-gray-100" />
                     </div>
                     <div className="relative group">
                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
                             <MotionIcon iconName="Lock" className="text-gray-400 group-focus-within:text-purple-500" size={18} />
                         </div>
-                        <input type="password" placeholder="كلمة المرور" value={password} onChange={e => setPassword(e.target.value)} className="w-full pr-12 pl-4 p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 border border-gray-100 font-bold text-sm" />
+                        <input type="password" placeholder="كلمة المرور" value={password} onChange={e => setPassword(e.target.value)} className="w-full pr-12 pl-4 p-4 bg-gray-50 dark:bg-darkBg rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 border border-gray-100 dark:border-darkBorder font-bold text-sm text-gray-800 dark:text-gray-100" />
                     </div>
                     {error && <p className="text-red-500 text-xs px-2 font-black animate-shake">{String(error)}</p>}
-                    <button type="submit" disabled={loading} className="group w-full py-4 bg-[#2E1A47] text-white rounded-2xl font-black shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <button type="submit" disabled={loading} className="group w-full py-4 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-2xl font-black shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                         {loading ? <MotionIcon iconName="RefreshCcw" className="animate-spin" size={20} /> : (
                             <>
                                 <MotionIcon iconName={view === 'login' ? 'ShieldCheck' : 'UserPlus'} size={20} className="group-hover:rotate-12" />
@@ -521,7 +833,7 @@
                             </>
                         )}
                     </button>
-                    <button type="button" onClick={() => setView(view === 'login' ? 'register' : 'login')} className="w-full text-center text-purple-600 font-black text-xs mt-4 underline underline-offset-4">
+                    <button type="button" onClick={() => setView(view === 'login' ? 'register' : 'login')} className="w-full text-center text-purple-600 dark:text-purple-400 font-black text-xs mt-4 underline underline-offset-4">
                         {view === 'login' ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول'}
                     </button>
                 </form>
@@ -534,6 +846,7 @@
             const [postImage, setPostImage] = useState(null);
             const [isOptimizing, setIsOptimizing] = useState(false);
             const [postCostError, setPostCostError] = useState('');
+            const [visibleCount, setVisibleCount] = useState(10); // عرض 10 منشورات لحل ثقل التطبيق
             const fileInputRef = useRef(null);
 
             const handleImageSelect = async (e) => {
@@ -563,7 +876,6 @@
                     return;
                 }
 
-                // تشغيل صوت النشر المميز واهتزاز خفيف
                 playPostPublishSound();
                 if ('vibrate' in navigator) {
                     try { navigator.vibrate([40, 60, 100]); } catch(e){}
@@ -578,8 +890,8 @@
 
             return (
                 <div className="space-y-5 animate-in fade-in slide-in-bottom scroll-smooth pb-36 md:pb-12">
-                    {/* بطاقة إنشاء المنشور بتصميم بصري نقي وعصري */}
-                    <div className="bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all">
+                    {/* بطاقة إنشاء المنشور */}
+                    <div className="bg-white dark:bg-darkCard p-5 md:p-6 rounded-[2rem] border border-gray-100 dark:border-darkBorder shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all">
                         <div className="flex items-start gap-3">
                             <div 
                                 className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm flex-shrink-0 shadow-sm overflow-hidden"
@@ -594,7 +906,7 @@
                             <div className="flex-1">
                                 <textarea 
                                     placeholder="ما الذي ترغب في مشاركته اليوم؟" 
-                                    className="w-full p-3.5 bg-gray-50/80 rounded-2xl resize-none outline-none focus:ring-2 focus:ring-purple-200 focus:bg-white transition-all h-24 text-gray-700 font-bold text-sm leading-relaxed border border-gray-100/80" 
+                                    className="w-full p-3.5 bg-gray-50/80 dark:bg-darkBg rounded-2xl resize-none outline-none focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 focus:bg-white dark:focus:bg-darkBg transition-all h-24 text-gray-700 dark:text-gray-100 font-bold text-sm leading-relaxed border border-gray-100/80 dark:border-darkBorder" 
                                     value={text} 
                                     onChange={e => { setText(e.target.value); setPostCostError(''); }} 
                                 />
@@ -602,21 +914,21 @@
                         </div>
 
                         {isOptimizing && (
-                            <div className="my-2 p-3 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
+                            <div className="my-2 p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
                                 <MotionIcon iconName="RefreshCcw" size={15} className="animate-spin" />
                                 <span>جارٍ ضغط وتأمين الصورة...</span>
                             </div>
                         )}
 
                         {postCostError && (
-                            <div className="my-2 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-black flex items-center justify-between border border-red-100 animate-shake">
+                            <div className="my-2 p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-xl text-xs font-black flex items-center justify-between border border-red-100 dark:border-red-900 animate-shake">
                                 <span>{postCostError}</span>
                                 <button type="button" onClick={() => setPostCostError('')}><MotionIcon iconName="X" size={13} /></button>
                             </div>
                         )}
 
                         {postImage && (
-                            <div className="relative mt-3 rounded-2xl overflow-hidden border border-purple-100 max-h-64 bg-black/5 flex items-center justify-center group animate-in zoom-in-95">
+                            <div className="relative mt-3 rounded-2xl overflow-hidden border border-purple-100 dark:border-purple-900 max-h-64 bg-black/5 flex items-center justify-center group animate-in zoom-in-95">
                                 <img src={postImage} alt="المعاينة" className="max-h-64 w-full object-cover rounded-2xl" />
                                 <button 
                                     type="button" 
@@ -629,7 +941,7 @@
                             </div>
                         )}
 
-                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-darkBorder">
                             <div className="flex items-center gap-2">
                                 <input 
                                     type="file" 
@@ -641,7 +953,7 @@
                                 />
                                 <label 
                                     htmlFor="post-img-upload" 
-                                    className="cursor-pointer px-3.5 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-all flex items-center gap-1.5 text-xs font-black"
+                                    className="cursor-pointer px-3.5 py-2 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/60 transition-all flex items-center gap-1.5 text-xs font-black"
                                 >
                                     <MotionIcon iconName="Image" size={16} />
                                     <span>إضافة صورة</span>
@@ -652,7 +964,7 @@
                                 type="button" 
                                 disabled={(!text.trim() && !postImage) || isOptimizing} 
                                 onClick={handlePublish} 
-                                className="group px-6 py-2.5 bg-[#2E1A47] hover:bg-purple-900 text-white rounded-xl font-black shadow-md transform active:scale-95 transition-all flex items-center gap-2 text-xs md:text-sm disabled:opacity-40"
+                                className="group px-6 py-2.5 bg-[#2E1A47] dark:bg-purple-700 hover:bg-purple-900 dark:hover:bg-purple-600 text-white rounded-xl font-black shadow-md transform active:scale-95 transition-all flex items-center gap-2 text-xs md:text-sm disabled:opacity-40"
                             >
                                 <MotionIcon iconName="Send" size={15} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
                                 <span>نشر</span>
@@ -660,14 +972,13 @@
                         </div>
                     </div>
 
-                    {/* قائمة المنشورات مع التفاعلات وتأثيرات فيسبوك */}
+                    {/* قائمة المنشورات مع التحديد بـ 10 منشورات وإمكانية إظهار المزيد */}
                     <div className="space-y-5">
-                        {posts.map((post) => {
+                        {posts.slice(0, visibleCount).map((post) => {
                             const isAdminPost = post.authorRole === 'admin' || post.authorId === 'admin-1';
                             const authorUser = userList.find(u => u.id === post.authorId);
                             const isAuthorVerified = Boolean(authorUser ? authorUser.verified : post.authorVerified);
 
-                            // حساب وتجهيز التفاعلات
                             const reactions = post.reactions || {};
                             const myReaction = reactions[user?.id];
                             const likesCount = Object.values(reactions).filter(r => r === 'like').length;
@@ -675,7 +986,7 @@
                             const laughsCount = Object.values(reactions).filter(r => r === 'laugh').length;
 
                             return (
-                                <div key={post.id} className={`bg-white p-6 md:p-7 rounded-[2.2rem] border relative overflow-hidden transition-all duration-300 ${isAdminPost ? 'border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.1)] bg-gradient-to-b from-white to-amber-50/20' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
+                                <div key={post.id} className={`bg-white dark:bg-darkCard p-6 md:p-7 rounded-[2.2rem] border relative overflow-hidden transition-all duration-300 ${isAdminPost ? 'border-amber-400 shadow-[0_12px_35px_rgba(245,158,11,0.1)] bg-gradient-to-b from-white to-amber-50/20 dark:from-darkCard dark:to-amber-950/20' : 'border-gray-100 dark:border-darkBorder shadow-sm hover:shadow-md'}`}>
                                     {isAdminPost && <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-400 via-yellow-600 to-amber-400"></div>}
                                     
                                     <div className="flex items-center justify-between mb-4">
@@ -693,11 +1004,11 @@
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-1.5">
-                                                    <h4 className={`font-black text-sm md:text-base tracking-tight group-hover:text-purple-700 transition-colors ${isAdminPost ? 'text-amber-700' : 'text-[#2E1A47]'}`}>
+                                                    <h4 className={`font-black text-sm md:text-base tracking-tight group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors ${isAdminPost ? 'text-amber-700 dark:text-amber-400' : 'text-[#2E1A47] dark:text-white'}`}>
                                                         {String(authorUser?.name || post.authorName)}
                                                     </h4>
                                                     {isAuthorVerified && <VerifiedBadge size={16} />}
-                                                    {isAdminPost && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-amber-200">إدارة</span>}
+                                                    {isAdminPost && <span className="bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-amber-200 dark:border-amber-800">إدارة</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold mt-0.5">
                                                     <MotionIcon iconName="Clock" size={11} />
@@ -708,13 +1019,13 @@
                                     </div>
 
                                     {post.content && (
-                                        <p className={`leading-relaxed whitespace-pre-wrap px-1 mb-4 font-bold ${isAdminPost ? 'text-[#2E1A47] text-base' : 'text-gray-700 text-sm'}`}>
+                                        <p className={`leading-relaxed whitespace-pre-wrap px-1 mb-4 font-bold ${isAdminPost ? 'text-[#2E1A47] dark:text-amber-100 text-base' : 'text-gray-700 dark:text-gray-200 text-sm'}`}>
                                             {String(post.content)}
                                         </p>
                                     )}
 
                                     {post.image && (
-                                        <div className="mb-4 rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center max-h-[460px]">
+                                        <div className="mb-4 rounded-2xl overflow-hidden border border-gray-100 dark:border-darkBorder bg-gray-50 dark:bg-darkBg flex items-center justify-center max-h-[460px]">
                                             <img 
                                                 src={post.image} 
                                                 alt="محتوى المنشور" 
@@ -724,45 +1035,42 @@
                                         </div>
                                     )}
 
-                                    {/* شريط التفاعلات الاحترافي مع أنيميشن فيسبوك والصوت الموحد الرقيق */}
-                                    <div className="flex flex-wrap items-center justify-between border-t border-gray-100 pt-3.5 gap-2">
-                                        <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-2xl border border-gray-100">
-                                            {/* زر لايك */}
+                                    {/* شريط التفاعلات */}
+                                    <div className="flex flex-wrap items-center justify-between border-t border-gray-100 dark:border-darkBorder pt-3.5 gap-2">
+                                        <div className="flex items-center gap-1.5 bg-gray-50/90 dark:bg-darkBg p-1 rounded-2xl border border-gray-100 dark:border-darkBorder">
                                             <button 
                                                 type="button" 
                                                 onClick={() => {
                                                     playReactionSound();
                                                     onReactPost(post.id, 'like');
                                                 }} 
-                                                className={`reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${myReaction === 'like' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-white'}`}
+                                                className={`reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${myReaction === 'like' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-darkCard'}`}
                                                 title="أعجبني"
                                             >
                                                 <span className={`reaction-emoji text-sm ${myReaction === 'like' ? 'reaction-pop' : ''}`}>👍</span>
                                                 <span>{likesCount > 0 ? likesCount : 'إعجاب'}</span>
                                             </button>
 
-                                            {/* زر قلب */}
                                             <button 
                                                 type="button" 
                                                 onClick={() => {
                                                     playReactionSound();
                                                     onReactPost(post.id, 'heart');
                                                 }} 
-                                                className={`reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${myReaction === 'heart' ? 'bg-rose-600 text-white shadow-md' : 'text-gray-600 hover:bg-white'}`}
+                                                className={`reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${myReaction === 'heart' ? 'bg-rose-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-darkCard'}`}
                                                 title="أحببته"
                                             >
                                                 <span className={`reaction-emoji text-sm ${myReaction === 'heart' ? 'reaction-pop' : ''}`}>❤️</span>
                                                 <span>{heartsCount > 0 ? heartsCount : 'قلب'}</span>
                                             </button>
 
-                                            {/* زر أضحكني */}
                                             <button 
                                                 type="button" 
                                                 onClick={() => {
                                                     playReactionSound();
                                                     onReactPost(post.id, 'laugh');
                                                 }} 
-                                                className={`reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${myReaction === 'laugh' ? 'bg-amber-500 text-white shadow-md' : 'text-gray-600 hover:bg-white'}`}
+                                                className={`reaction-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${myReaction === 'laugh' ? 'bg-amber-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-darkCard'}`}
                                                 title="أضحكني"
                                             >
                                                 <span className={`reaction-emoji text-sm ${myReaction === 'laugh' ? 'reaction-pop' : ''}`}>😂</span>
@@ -773,7 +1081,7 @@
                                         <button 
                                             type="button" 
                                             onClick={() => { setActiveCommentPost(activeCommentPost === post.id ? null : post.id); setActiveReplyToId(null); }} 
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black text-xs ${activeCommentPost === post.id ? 'bg-[#2E1A47] text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black text-xs ${activeCommentPost === post.id ? 'bg-[#2E1A47] dark:bg-purple-700 text-white shadow-md' : 'bg-gray-50 dark:bg-darkBg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-darkBorder'}`}
                                         >
                                             <MotionIcon iconName="MessagesSquare" size={15} /> 
                                             <span>{post.comments?.length || 0} تعليقات</span>
@@ -781,7 +1089,7 @@
                                     </div>
 
                                     {activeCommentPost === post.id && (
-                                        <div className="mt-4 pt-3 border-t border-gray-100 animate-in slide-in-bottom">
+                                        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-darkBorder animate-in slide-in-bottom">
                                             <div className="space-y-3 mb-4 max-h-72 overflow-y-auto custom-scrollbar">
                                                 {(post.comments || []).map(comment => {
                                                     const commentUser = userList.find(u => u.id === comment.authorId);
@@ -801,13 +1109,13 @@
                                                                         String(comment.authorName)?.[0]
                                                                     )}
                                                                 </div>
-                                                                <div className="bg-gray-50 p-3.5 rounded-2xl rounded-tr-none flex-1 border border-gray-100 shadow-sm relative">
+                                                                <div className="bg-gray-50 dark:bg-darkBg p-3.5 rounded-2xl rounded-tr-none flex-1 border border-gray-100 dark:border-darkBorder shadow-sm relative">
                                                                     <div className="flex justify-between items-center mb-1">
                                                                         <div 
                                                                             onClick={() => onOpenUserProfile(comment.authorId)}
                                                                             className="flex items-center gap-1 cursor-pointer hover:underline"
                                                                         >
-                                                                            <span className="text-[11px] font-black text-[#2E1A47]">
+                                                                            <span className="text-[11px] font-black text-[#2E1A47] dark:text-purple-300">
                                                                                 {String(commentUser?.name || comment.authorName)}
                                                                             </span>
                                                                             {isCommentAuthorVerified && <VerifiedBadge size={13} />}
@@ -826,8 +1134,8 @@
                                                                             )}
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-xs text-gray-700 leading-relaxed font-bold">{String(comment.text)}</p>
-                                                                    <button type="button" onClick={() => setActiveReplyToId(activeReplyToId === comment.id ? null : comment.id)} className="text-[10px] text-purple-600 font-black mt-2 flex items-center gap-1 hover:underline">
+                                                                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-bold">{String(comment.text)}</p>
+                                                                    <button type="button" onClick={() => setActiveReplyToId(activeReplyToId === comment.id ? null : comment.id)} className="text-[10px] text-purple-600 dark:text-purple-400 font-black mt-2 flex items-center gap-1 hover:underline">
                                                                         <MotionIcon iconName="Reply" size={10} /> رد
                                                                     </button>
                                                                 </div>
@@ -849,13 +1157,13 @@
                                                                                 String(reply.authorName)?.[0]
                                                                             )}
                                                                         </div>
-                                                                        <div className="bg-purple-50/70 p-3 rounded-2xl rounded-tr-none flex-1 border border-purple-100/50 text-xs text-purple-900 font-bold relative">
+                                                                        <div className="bg-purple-50/70 dark:bg-purple-950/40 p-3 rounded-2xl rounded-tr-none flex-1 border border-purple-100/50 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 font-bold relative">
                                                                             <div className="flex justify-between items-center mb-1">
                                                                                 <div 
                                                                                     onClick={() => onOpenUserProfile(reply.authorId)}
                                                                                     className="flex items-center gap-1 cursor-pointer hover:underline"
                                                                                 >
-                                                                                    <span className="text-[10px] font-black text-[#2E1A47]">
+                                                                                    <span className="text-[10px] font-black text-[#2E1A47] dark:text-purple-300">
                                                                                         {String(replyUser?.name || reply.authorName)}
                                                                                     </span>
                                                                                     {isReplyAuthorVerified && <VerifiedBadge size={12} />}
@@ -887,12 +1195,12 @@
                                                     onChange={e => setCommentText(e.target.value)} 
                                                     onKeyDown={e => e.key === 'Enter' && (addComment(post.id, commentText, activeReplyToId), setCommentText(''), setActiveReplyToId(null))} 
                                                     placeholder={activeReplyToId ? "اكتب ردك..." : "اكتب تعليقك..."} 
-                                                    className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-200 font-bold" 
+                                                    className="flex-1 bg-gray-100 dark:bg-darkBg rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 font-bold text-gray-800 dark:text-gray-100 border border-transparent dark:border-darkBorder" 
                                                 />
                                                 <button 
                                                     type="button" 
                                                     onClick={() => { addComment(post.id, commentText, activeReplyToId); setCommentText(''); setActiveReplyToId(null); }} 
-                                                    className="px-4 bg-[#2E1A47] text-white rounded-xl shadow-md active:scale-95 transition-all"
+                                                    className="px-4 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-xl shadow-md active:scale-95 transition-all"
                                                 >
                                                     <MotionIcon iconName="Send" size={15} className="rotate-180" />
                                                 </button>
@@ -902,6 +1210,20 @@
                                 </div>
                             );
                         })}
+
+                        {/* زر إظهار المزيد من المنشورات لتحسين الخفة والسرعة */}
+                        {posts.length > visibleCount && (
+                            <div className="pt-2 text-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setVisibleCount(prev => prev + 10)}
+                                    className="px-6 py-3.5 bg-white dark:bg-darkCard text-[#2E1A47] dark:text-purple-300 font-black text-xs md:text-sm rounded-2xl border border-gray-200 dark:border-darkBorder shadow-sm hover:shadow-md hover:border-purple-300 active:scale-95 transition-all inline-flex items-center gap-2 group"
+                                >
+                                    <MotionIcon iconName="RefreshCcw" size={16} className="text-purple-600 dark:text-purple-400 group-hover:rotate-180 transition-transform duration-500" />
+                                    <span>إظهار المزيد من المنشورات ({posts.length - visibleCount} منشور متبقي)</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -1026,12 +1348,12 @@
             };
 
             return (
-                <div className={`bg-white rounded-[2.5rem] border border-gray-100 flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative w-full ${selectedTarget ? 'h-[calc(100vh-85px)] md:h-[calc(100vh-130px)]' : 'h-[calc(100vh-175px)] md:h-[calc(100vh-130px)]'}`}>
+                <div className={`bg-white dark:bg-darkCard rounded-[2.5rem] border border-gray-100 dark:border-darkBorder flex flex-col md:flex-row overflow-hidden shadow-sm animate-in fade-in relative w-full ${selectedTarget ? 'h-[calc(100vh-85px)] md:h-[calc(100vh-130px)]' : 'h-[calc(100vh-175px)] md:h-[calc(100vh-130px)]'}`}>
                     {showNewGroupModal && (
                         <div className="fixed inset-0 z-[250] flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-in zoom-in-95">
-                            <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl border">
+                            <div className="bg-white dark:bg-darkCard rounded-[2rem] p-6 max-w-sm w-full shadow-2xl border border-gray-100 dark:border-darkBorder">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h4 className="font-black text-[#2E1A47] text-base flex items-center gap-2">
+                                    <h4 className="font-black text-[#2E1A47] dark:text-purple-300 text-base flex items-center gap-2">
                                         <MotionIcon iconName="Users" size={18} className="text-purple-600" /> إنشاء مجموعة محادثة
                                     </h4>
                                     <button onClick={() => setShowNewGroupModal(false)} className="text-gray-400 hover:text-gray-600"><MotionIcon iconName="X" size={18}/></button>
@@ -1042,15 +1364,15 @@
                                         placeholder="اسم المجموعة..." 
                                         value={newGroupName} 
                                         onChange={e => setNewGroupName(e.target.value)} 
-                                        className="w-full p-3 bg-gray-50 rounded-xl outline-none font-bold text-xs border"
+                                        className="w-full p-3 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-xl outline-none font-bold text-xs border dark:border-darkBorder"
                                         required
                                     />
                                     <div>
-                                        <label className="text-[11px] font-bold text-gray-500 block mb-1">حدد الأعضاء:</label>
-                                        <div className="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar border p-2 rounded-xl bg-gray-50/50">
+                                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">حدد الأعضاء:</label>
+                                        <div className="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar border dark:border-darkBorder p-2 rounded-xl bg-gray-50/50 dark:bg-darkBg">
                                             {users.filter(u => u.id !== currentUser.id).map(u => (
-                                                <label key={u.id} className="flex items-center justify-between p-2 rounded-lg bg-white border text-xs cursor-pointer hover:bg-purple-50/30">
-                                                    <span className="font-bold text-[#2E1A47]">{u.name} (@{u.username})</span>
+                                                <label key={u.id} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-darkCard border dark:border-darkBorder text-xs cursor-pointer hover:bg-purple-50/30">
+                                                    <span className="font-bold text-[#2E1A47] dark:text-gray-200">{u.name} (@{u.username})</span>
                                                     <input 
                                                         type="checkbox" 
                                                         checked={selectedMembers.includes(u.id)}
@@ -1065,10 +1387,10 @@
                                         </div>
                                     </div>
                                     <div className="flex gap-2 pt-2">
-                                        <button type="submit" className="flex-1 py-3 bg-[#2E1A47] text-white rounded-xl font-black text-xs shadow-md">
+                                        <button type="submit" className="flex-1 py-3 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-xl font-black text-xs shadow-md">
                                             إنشاء المجموعة
                                         </button>
-                                        <button type="button" onClick={() => setShowNewGroupModal(false)} className="px-4 py-3 bg-gray-100 text-gray-500 rounded-xl font-black text-xs">
+                                        <button type="button" onClick={() => setShowNewGroupModal(false)} className="px-4 py-3 bg-gray-100 dark:bg-darkBorder text-gray-500 dark:text-gray-300 rounded-xl font-black text-xs">
                                             إلغاء
                                         </button>
                                     </div>
@@ -1077,15 +1399,15 @@
                         </div>
                     )}
 
-                    <div className={`w-full md:w-80 border-l flex flex-col bg-gray-50/30 h-full ${selectedTarget ? 'hidden md:flex' : 'flex'}`}>
-                        <div className="p-5 bg-white border-b space-y-3">
+                    <div className={`w-full md:w-80 border-l dark:border-darkBorder flex flex-col bg-gray-50/30 dark:bg-darkBg h-full ${selectedTarget ? 'hidden md:flex' : 'flex'}`}>
+                        <div className="p-5 bg-white dark:bg-darkCard border-b dark:border-darkBorder space-y-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="font-black text-base text-[#2E1A47] tracking-tight flex items-center gap-2">
+                                <h3 className="font-black text-base text-[#2E1A47] dark:text-white tracking-tight flex items-center gap-2">
                                     <MotionIcon iconName="MessageSquare" className="text-purple-600" size={18} /> الرسائل
                                 </h3>
                                 <button 
                                     onClick={() => setShowNewGroupModal(true)} 
-                                    className="p-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all"
+                                    className="p-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all"
                                     title="إنشاء مجموعة جديدة"
                                 >
                                     <MotionIcon iconName="PlusCircle" size={15} />
@@ -1099,7 +1421,7 @@
                                 <input 
                                     type="text" 
                                     placeholder="ابحث بالاسم أو اليوزر للمراسلة..." 
-                                    className="w-full pr-10 pl-4 py-3 bg-gray-100 rounded-xl outline-none text-xs font-black focus:ring-2 focus:ring-purple-200" 
+                                    className="w-full pr-10 pl-4 py-3 bg-gray-100 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-xl outline-none text-xs font-black focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 border dark:border-darkBorder" 
                                     value={searchQuery} 
                                     onChange={e => setSearchQuery(e.target.value)} 
                                 />
@@ -1115,13 +1437,13 @@
                                             <button 
                                                 key={u.id} 
                                                 onClick={() => { setSelectedTarget({ ...u, isGroup: false }); setSearchQuery(''); }} 
-                                                className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 bg-white border border-gray-100'}`}
+                                                className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'bg-[#2E1A47] dark:bg-purple-750 text-white shadow-xl' : 'hover:bg-gray-100 dark:hover:bg-darkBorder bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder'}`}
                                             >
                                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-sm overflow-hidden" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>
                                                     {u.avatar ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" /> : String(u.name)?.[0]}
                                                 </div>
                                                 <div className="text-right flex-1 overflow-hidden">
-                                                    <p className="font-black text-xs truncate">{String(u.name)}</p>
+                                                    <p className="font-black text-xs truncate text-[#2E1A47] dark:text-gray-100">{String(u.name)}</p>
                                                     <p className={`text-[10px] font-bold ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'text-purple-200' : 'text-gray-400'}`}>@{String(u.username)}</p>
                                                 </div>
                                             </button>
@@ -1139,13 +1461,13 @@
                                                 <button 
                                                     key={g.id} 
                                                     onClick={() => setSelectedTarget({ ...g, isGroup: true })} 
-                                                    className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === g.id && selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 bg-white border border-gray-100/70'}`}
+                                                    className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === g.id && selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 dark:hover:bg-darkBorder bg-white dark:bg-darkCard border border-gray-100/70 dark:border-darkBorder'}`}
                                                 >
                                                     <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-sm">
                                                         <MotionIcon iconName="Users" size={18} />
                                                     </div>
                                                     <div className="text-right flex-1 overflow-hidden">
-                                                        <p className="font-black text-xs truncate">{String(g.name)}</p>
+                                                        <p className="font-black text-xs truncate text-[#2E1A47] dark:text-gray-100">{String(g.name)}</p>
                                                         <p className={`text-[9px] font-bold ${selectedTarget?.id === g.id && selectedTarget?.isGroup ? 'text-purple-200' : 'text-gray-400'}`}>{(g.members?.length || 0) + 1} أعضاء</p>
                                                     </div>
                                                 </button>
@@ -1162,13 +1484,13 @@
                                                     <button 
                                                         key={u.id} 
                                                         onClick={() => setSelectedTarget({ ...u, isGroup: false })} 
-                                                        className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 bg-white border border-gray-100/70'}`}
+                                                        className={`w-full p-3.5 flex items-center gap-3 rounded-2xl transition-all ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'bg-[#2E1A47] text-white shadow-xl' : 'hover:bg-gray-100 dark:hover:bg-darkBorder bg-white dark:bg-darkCard border border-gray-100/70 dark:border-darkBorder'}`}
                                                     >
                                                         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-sm overflow-hidden" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>
                                                             {u.avatar ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" /> : String(u.name)?.[0]}
                                                         </div>
                                                         <div className="text-right flex-1 overflow-hidden">
-                                                            <p className="font-black text-xs truncate">{String(u.name)}</p>
+                                                            <p className="font-black text-xs truncate text-[#2E1A47] dark:text-gray-100">{String(u.name)}</p>
                                                             <p className={`text-[9px] font-bold ${selectedTarget?.id === u.id && !selectedTarget?.isGroup ? 'text-purple-200' : 'text-gray-400'}`}>@{String(u.username)}</p>
                                                         </div>
                                                         {unreadCount > 0 && <span className="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg">{unreadCount}</span>}
@@ -1188,15 +1510,15 @@
                         </div>
                     </div>
 
-                    <div className={`flex-1 flex flex-col bg-white h-full min-h-0 ${!selectedTarget ? 'hidden md:flex items-center justify-center opacity-40' : 'flex'}`}>
+                    <div className={`flex-1 flex flex-col bg-white dark:bg-darkCard h-full min-h-0 ${!selectedTarget ? 'hidden md:flex items-center justify-center opacity-40' : 'flex'}`}>
                         {selectedTarget ? (
                             <div className="flex flex-col h-full w-full min-h-0 relative">
-                                <div className="p-3 md:p-3.5 border-b flex items-center justify-between bg-gray-50/90 backdrop-blur-sm flex-shrink-0 z-10">
+                                <div className="p-3 md:p-3.5 border-b dark:border-darkBorder flex items-center justify-between bg-gray-50/90 dark:bg-darkBg backdrop-blur-sm flex-shrink-0 z-10">
                                     <div className="flex items-center gap-2.5">
                                         <button 
                                             type="button" 
                                             onClick={() => setSelectedTarget(null)} 
-                                            className="p-2 -mr-1 text-purple-700 bg-purple-100/80 hover:bg-purple-200 rounded-xl transition-all flex items-center gap-1 text-xs font-black md:hidden active:scale-90"
+                                            className="p-2 -mr-1 text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-900/40 hover:bg-purple-200 rounded-xl transition-all flex items-center gap-1 text-xs font-black md:hidden active:scale-90"
                                             title="الرجوع للقائمة"
                                         >
                                             <MotionIcon iconName="ChevronRight" size={18} />
@@ -1210,10 +1532,10 @@
                                             )}
                                         </div>
                                         <div>
-                                            <h4 className="font-black text-sm text-[#2E1A47] leading-tight">
+                                            <h4 className="font-black text-sm text-[#2E1A47] dark:text-white leading-tight">
                                                 {String(selectedTarget.name)} {selectedTarget.isGroup ? '(مجموعة)' : `(@${selectedTarget.username})`}
                                             </h4>
-                                            <p className="text-[9px] text-green-600 font-bold flex items-center gap-1 mt-0.5">
+                                            <p className="text-[9px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1 mt-0.5">
                                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> 
                                                 {selectedTarget.isGroup ? `${(selectedTarget.members?.length || 0) + 1} أعضاء بالمجموعة` : 'متصل'}
                                             </p>
@@ -1224,7 +1546,7 @@
                                             <button 
                                                 type="button" 
                                                 onClick={() => onClearChat(selectedTarget.id, false)} 
-                                                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-black flex items-center gap-1 transition-all"
+                                                className="p-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-300 rounded-xl text-xs font-black flex items-center gap-1 transition-all"
                                                 title="حذف كل رسائل هذه المحادثة"
                                             >
                                                 <MotionIcon iconName="Trash2" size={14} />
@@ -1235,7 +1557,7 @@
                                             <button 
                                                 type="button" 
                                                 onClick={() => deleteGroup(selectedTarget.id)} 
-                                                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                                                className="p-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
                                                 title="إزالة المجموعة"
                                             >
                                                 <MotionIcon iconName="Trash2" size={14} />
@@ -1247,7 +1569,7 @@
                                 
                                 <div 
                                     ref={chatContainerRef} 
-                                    className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar bg-[#FDFCF8]/50 overscroll-contain"
+                                    className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar bg-[#FDFCF8]/50 dark:bg-darkBg overscroll-contain"
                                     style={{ 
                                         WebkitOverflowScrolling: 'touch',
                                         overflowAnchor: 'auto'
@@ -1257,9 +1579,9 @@
                                         const isMine = m.from === currentUser.id;
                                         return (
                                             <div key={m.id} className={`flex ${isMine ? 'justify-start' : 'justify-end'} animate-in zoom-in-95 group relative`}>
-                                                <div className={`p-3.5 rounded-[1.6rem] max-w-[85%] shadow-sm border relative ${isMine ? 'bg-[#2E1A47] text-white rounded-br-none border-[#2E1A47]' : 'bg-white border-gray-100 text-[#2E1A47] rounded-bl-none'}`}>
+                                                <div className={`p-3.5 rounded-[1.6rem] max-w-[85%] shadow-sm border relative ${isMine ? 'bg-[#2E1A47] dark:bg-purple-900 text-white rounded-br-none border-[#2E1A47] dark:border-purple-800' : 'bg-white dark:bg-darkCard border-gray-100 dark:border-darkBorder text-[#2E1A47] dark:text-gray-100 rounded-bl-none'}`}>
                                                     {selectedTarget.isGroup && !isMine && (
-                                                        <span className="text-[10px] font-black text-purple-600 block mb-1">{String(m.fromName || 'عضو')}</span>
+                                                        <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 block mb-1">{String(m.fromName || 'عضو')}</span>
                                                     )}
                                                     <p className="text-xs font-bold leading-relaxed break-words">{String(m.text)}</p>
                                                     <div className="flex items-center justify-between gap-3 mt-1.5 pt-1 border-t border-white/10">
@@ -1286,7 +1608,7 @@
                                 </div>
 
                                 {sendError && (
-                                    <div className="px-4 py-2 bg-red-50 text-red-600 text-xs font-black border-t border-red-100 flex items-center justify-between animate-shake flex-shrink-0">
+                                    <div className="px-4 py-2 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 text-xs font-black border-t border-red-100 dark:border-red-900 flex items-center justify-between animate-shake flex-shrink-0">
                                         <span>{sendError}</span>
                                         <button onClick={() => setSendError('')} className="text-red-400 hover:text-red-600">
                                             <MotionIcon iconName="X" size={12} />
@@ -1296,13 +1618,13 @@
 
                                 <form 
                                     onSubmit={handleSend} 
-                                    className="p-2.5 md:p-3.5 border-t flex gap-2 bg-white items-center flex-shrink-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]"
+                                    className="p-2.5 md:p-3.5 border-t dark:border-darkBorder flex gap-2 bg-white dark:bg-darkCard items-center flex-shrink-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]"
                                 >
                                     <input 
                                         ref={inputRef}
                                         type="text" 
                                         placeholder={isSending ? "جارٍ الإرسال..." : "اكتب رسالتك هنا..."} 
-                                        className="flex-1 p-3 px-4 bg-gray-50 rounded-2xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 border border-gray-100 disabled:opacity-60" 
+                                        className="flex-1 p-3 px-4 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-2xl outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 border border-gray-100 dark:border-darkBorder disabled:opacity-60" 
                                         value={msg} 
                                         onChange={e => setMsg(e.target.value)} 
                                         autoComplete="off"
@@ -1312,7 +1634,7 @@
                                         type="submit" 
                                         disabled={isSending || !msg.trim()}
                                         onMouseDown={(e) => e.preventDefault()} 
-                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] hover:bg-purple-900 text-white rounded-2xl shadow-lg active:scale-95 transition-all flex-shrink-0 disabled:opacity-40"
+                                        className="w-11 h-11 flex items-center justify-center bg-[#2E1A47] dark:bg-purple-700 hover:bg-purple-900 dark:hover:bg-purple-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all flex-shrink-0 disabled:opacity-40"
                                     >
                                         {isSending ? (
                                             <MotionIcon iconName="RefreshCcw" size={17} className="animate-spin" />
@@ -1324,8 +1646,8 @@
                             </div>
                         ) : (
                             <div className="text-center p-6">
-                                <MotionIcon iconName="MessageSquare" size={54} className="mx-auto mb-3 text-purple-300 animate-icon-float" />
-                                <p className="font-black text-base text-[#2E1A47]">المراسلات</p>
+                                <MotionIcon iconName="MessageSquare" size={54} className="mx-auto mb-3 text-purple-300 dark:text-purple-600 animate-icon-float" />
+                                <p className="font-black text-base text-[#2E1A47] dark:text-white">المراسلات</p>
                                 <p className="text-xs text-gray-400 mt-1">ابحث عن شخص أو افتح مجموعة لبدء المحادثة</p>
                             </div>
                         )}
@@ -1334,7 +1656,7 @@
             );
         };
 
-        const BankView = ({ user, users, onTransfer, onOpenLoanModal, userLoans }) => {
+        const BankView = ({ user, users, onTransfer, onOpenLoanModal, userLoans, onOpenLuckyWheel }) => {
             const [recipient, setRecipient] = useState('');
             const [amount, setAmount] = useState('');
             const [feedback, setFeedback] = useState(null);
@@ -1407,19 +1729,19 @@
                         </div>
                     </div>
 
-                    <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
+                    <div className="bg-white dark:bg-darkCard p-7 rounded-[2.5rem] border border-gray-100 dark:border-darkBorder shadow-sm space-y-4">
                         <div className="flex items-center gap-3 mb-2">
-                            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-2xl">
                                 <MotionIcon iconName="Send" size={20} className="rotate-180" />
                             </div>
                             <div>
-                                <h3 className="font-black text-base text-[#2E1A47]">إرسال عملات (تحديث فوري)</h3>
+                                <h3 className="font-black text-base text-[#2E1A47] dark:text-white">إرسال عملات (تحديث فوري)</h3>
                                 <p className="text-[11px] text-gray-400 font-bold">تحويل رصيد بالبحث الدقيق باسم المستخدم والمزامنة اللحظية</p>
                             </div>
                         </div>
 
                         {feedback && (
-                            <div className={`p-4 rounded-2xl text-xs font-black ${feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200 animate-shake'}`}>
+                            <div className={`p-4 rounded-2xl text-xs font-black ${feedback.type === 'success' ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 animate-shake'}`}>
                                 {feedback.msg}
                             </div>
                         )}
@@ -1432,13 +1754,13 @@
                                     placeholder="اكتب اسم مستخدم الشخص المطلوب بدقة..." 
                                     value={recipient} 
                                     onChange={e => setRecipient(e.target.value)} 
-                                    className="w-full pr-10 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm border border-gray-100 focus:ring-2 focus:ring-amber-300"
+                                    className="w-full pr-10 pl-4 py-3.5 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-2xl outline-none font-bold text-sm border border-gray-100 dark:border-darkBorder focus:ring-2 focus:ring-amber-300"
                                     autoComplete="off"
                                 />
                             </div>
 
                             {exactMatchedUser && (
-                                <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-center justify-between animate-in zoom-in-95">
+                                <div className="p-3 bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800 rounded-2xl flex items-center justify-between animate-in zoom-in-95">
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs shadow-sm overflow-hidden" style={{ backgroundColor: exactMatchedUser.profileColor || '#2E1A47' }}>
                                             {exactMatchedUser.avatar ? (
@@ -1448,8 +1770,8 @@
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-black text-xs text-[#2E1A47]">{exactMatchedUser.name}</p>
-                                            <p className="text-[10px] text-purple-700 font-bold">@{exactMatchedUser.username} (المستلم المعتمد)</p>
+                                            <p className="font-black text-xs text-[#2E1A47] dark:text-white">{exactMatchedUser.name}</p>
+                                            <p className="text-[10px] text-purple-700 dark:text-purple-300 font-bold">@{exactMatchedUser.username} (المستلم المعتمد)</p>
                                         </div>
                                     </div>
                                     <span className="p-1.5 bg-green-500 text-white rounded-lg text-xs">
@@ -1472,7 +1794,7 @@
                                     step="0.01" 
                                     value={amount} 
                                     onChange={e => setAmount(e.target.value)} 
-                                    className="w-full pr-12 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm border border-gray-100 focus:ring-2 focus:ring-amber-300"
+                                    className="w-full pr-12 pl-4 py-3.5 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-2xl outline-none font-bold text-sm border border-gray-100 dark:border-darkBorder focus:ring-2 focus:ring-amber-300"
                                 />
                             </div>
                             <button 
@@ -1495,45 +1817,62 @@
                         </form>
                     </div>
 
-                    <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
+                    {/* قسم التمويل وعجلة الحظ (3 أيقونات) */}
+                    <div className="bg-white dark:bg-darkCard p-7 rounded-[2.5rem] border border-gray-100 dark:border-darkBorder shadow-sm space-y-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 bg-purple-50 text-purple-700 rounded-2xl">
+                            <div className="p-3 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-2xl">
                                 <MotionIcon iconName="Wallet" size={20} />
                             </div>
                             <div>
-                                <h3 className="font-black text-base text-[#2E1A47]">طلب تمويل رصيد</h3>
-                                <p className="text-[11px] text-gray-400 font-bold">إرسال طلب موافقة للمسؤول لشحن الحساب</p>
+                                <h3 className="font-black text-base text-[#2E1A47] dark:text-white">خيارات التمويل والجوائز</h3>
+                                <p className="text-[11px] text-gray-400 font-bold">طلب تمويل رصيد من الإدارة أو تدوير عجلة الحظ اليومية</p>
                             </div>
                         </div>
 
                         {myPendingLoans.length > 0 && (
-                            <div className="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-2xl text-xs font-bold">
+                            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-900 rounded-2xl text-xs font-bold">
                                 لديك طلب تمويل قيد المراجعة لدى الإدارة بقيمة: {myPendingLoans[0].amount} كوين
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                            <div onClick={() => onOpenLoanModal(100)} className="p-4 bg-gradient-to-r from-amber-50/60 to-purple-50/40 border border-amber-200/60 rounded-2xl flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all group shadow-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                            {/* 1: تمويل 100 كوين */}
+                            <div onClick={() => onOpenLoanModal(100)} className="p-4 bg-gradient-to-r from-amber-50/60 to-purple-50/40 dark:from-darkBg dark:to-purple-950/30 border border-amber-200/60 dark:border-darkBorder rounded-2xl flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all group shadow-sm">
                                 <div>
-                                    <span className="font-black text-sm text-[#2E1A47] block group-hover:text-amber-600 transition-colors">تمويل (100 كوين)</span>
+                                    <span className="font-black text-sm text-[#2E1A47] dark:text-gray-100 block group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">تمويل (100 كوين)</span>
                                     <span className="text-[10px] text-gray-400 font-bold">طلب موافقة الإدارة</span>
                                 </div>
                                 <span className="p-2.5 bg-amber-400 text-[#2E1A47] rounded-xl text-xs font-black"><i className="fa-solid fa-coins"></i></span>
                             </div>
-                            <div onClick={() => onOpenLoanModal(250)} className="p-4 bg-gradient-to-r from-amber-50/60 to-purple-50/40 border border-amber-200/60 rounded-2xl flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all group shadow-sm">
+
+                            {/* 2: تمويل 250 كوين */}
+                            <div onClick={() => onOpenLoanModal(250)} className="p-4 bg-gradient-to-r from-amber-50/60 to-purple-50/40 dark:from-darkBg dark:to-purple-950/30 border border-amber-200/60 dark:border-darkBorder rounded-2xl flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all group shadow-sm">
                                 <div>
-                                    <span className="font-black text-sm text-[#2E1A47] block group-hover:text-amber-600 transition-colors">تمويل (250 كوين)</span>
+                                    <span className="font-black text-sm text-[#2E1A47] dark:text-gray-100 block group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">تمويل (250 كوين)</span>
                                     <span className="text-[10px] text-gray-400 font-bold">طلب موافقة الإدارة</span>
                                 </div>
                                 <span className="p-2.5 bg-amber-500 text-white rounded-xl text-xs font-black"><i className="fa-solid fa-vault"></i></span>
                             </div>
+
+                            {/* 3: عجلة الحظ المحدثة */}
+                            <div onClick={onOpenLuckyWheel} className="p-4 bg-gradient-to-r from-purple-50/80 via-amber-50/50 to-pink-50/60 dark:from-purple-950/40 dark:via-darkBg dark:to-pink-950/30 border-2 border-purple-300 dark:border-purple-600 rounded-2xl flex items-center justify-between cursor-pointer hover:scale-[1.02] hover:border-amber-400 transition-all group shadow-md relative overflow-hidden">
+                                <div className="relative z-10">
+                                    <span className="font-black text-sm text-[#2E1A47] dark:text-amber-300 block group-hover:text-purple-600 dark:group-hover:text-amber-200 transition-colors flex items-center gap-1.5">
+                                        <span>🎡 عجلة الحظ</span>
+                                    </span>
+                                    <span className="text-[10px] text-purple-700 dark:text-purple-300 font-bold">دوّر واكسب كوينز مجاناً</span>
+                                </div>
+                                <span className="p-2.5 bg-gradient-to-tr from-purple-600 to-amber-500 text-white rounded-xl text-sm font-black shadow-md animate-bounce">
+                                    <i className="fa-solid fa-dharmachakra"></i>
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-7 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                            <h3 className="font-black text-base text-[#2E1A47] flex items-center gap-2">
-                                <MotionIcon iconName="FileText" size={18} className="text-purple-600" /> السجل المالي
+                    <div className="bg-white dark:bg-darkCard p-7 rounded-[2.5rem] border border-gray-100 dark:border-darkBorder shadow-sm space-y-4">
+                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-darkBorder pb-3">
+                            <h3 className="font-black text-base text-[#2E1A47] dark:text-white flex items-center gap-2">
+                                <MotionIcon iconName="FileText" size={18} className="text-purple-600 dark:text-purple-400" /> السجل المالي
                             </h3>
                             <span className="text-[11px] text-gray-400 font-bold">العمليات السابقة</span>
                         </div>
@@ -1542,17 +1881,17 @@
                                 userHistory.map((h, i) => {
                                     const isIn = h.type === 'in';
                                     return (
-                                        <div key={i} className="flex items-center justify-between p-3.5 bg-gray-50/70 hover:bg-gray-100/70 rounded-2xl transition-colors">
+                                        <div key={i} className="flex items-center justify-between p-3.5 bg-gray-50/70 dark:bg-darkBg hover:bg-gray-100/70 dark:hover:bg-darkHover rounded-2xl transition-colors border border-transparent dark:border-darkBorder">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${isIn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${isIn ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'}`}>
                                                     <MotionIcon iconName={isIn ? "ArrowDownLeft" : "ArrowUpRight"} size={16} />
                                                 </div>
                                                 <div>
-                                                    <p className="font-black text-xs text-[#2E1A47]">{h.msg}</p>
+                                                    <p className="font-black text-xs text-[#2E1A47] dark:text-gray-100">{h.msg}</p>
                                                     <span className="text-[9px] text-gray-400 font-bold">{h.time || '--:--'}</span>
                                                 </div>
                                             </div>
-                                            <div className={`font-black text-sm ${isIn ? 'text-green-600' : 'text-red-600'}`} dir="ltr">
+                                            <div className={`font-black text-sm ${isIn ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} dir="ltr">
                                                 {isIn ? '+' : '-'}{Number(h.amount).toFixed(2)}
                                             </div>
                                         </div>
@@ -1589,9 +1928,9 @@
 
             return (
                 <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-bottom pb-28">
-                    <div className="bg-white rounded-[3rem] overflow-hidden border shadow-sm relative">
+                    <div className="bg-white dark:bg-darkCard rounded-[3rem] overflow-hidden border border-gray-100 dark:border-darkBorder shadow-sm relative">
                         <div className="h-44 relative transition-colors duration-500" style={{ backgroundColor: color || '#2E1A47' }}>
-                            <div className="absolute -bottom-10 right-10 w-32 h-32 rounded-[2.5rem] bg-white p-1.5 shadow-2xl relative group">
+                            <div className="absolute -bottom-10 right-10 w-32 h-32 rounded-[2.5rem] bg-white dark:bg-darkCard p-1.5 shadow-2xl relative group">
                                 <div className="w-full h-full rounded-[2.2rem] flex items-center justify-center text-white text-4xl font-black shadow-inner overflow-hidden relative" style={{ backgroundColor: color || '#2E1A47' }}>
                                     {avatar ? (
                                         <img src={avatar} alt={user?.name} className="w-full h-full object-cover" />
@@ -1627,34 +1966,34 @@
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h2 className="text-3xl font-black text-[#2E1A47] tracking-tight">{String(user?.name)}</h2>
+                                                <h2 className="text-3xl font-black text-[#2E1A47] dark:text-white tracking-tight">{String(user?.name)}</h2>
                                                 {user?.verified && <VerifiedBadge size={22} />}
                                             </div>
-                                            <p className="text-purple-600 font-bold text-sm mt-0.5">@{String(user?.username)}</p>
+                                            <p className="text-purple-600 dark:text-purple-400 font-bold text-sm mt-0.5">@{String(user?.username)}</p>
                                         </div>
-                                        <button onClick={() => { setIsEditing(true); setAvatar(user?.avatar || null); }} className="p-3.5 bg-purple-50 text-purple-700 rounded-2xl hover:scale-105 transition-all shadow-sm">
+                                        <button onClick={() => { setIsEditing(true); setAvatar(user?.avatar || null); }} className="p-3.5 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-2xl hover:scale-105 transition-all shadow-sm">
                                             <MotionIcon iconName="Settings" size={20}/>
                                         </button>
                                     </div>
-                                    <div className="bg-gray-50 p-6 rounded-2xl border italic text-gray-600 font-bold text-xs leading-relaxed">
+                                    <div className="bg-gray-50 dark:bg-darkBg p-6 rounded-2xl border dark:border-darkBorder italic text-gray-600 dark:text-gray-300 font-bold text-xs leading-relaxed">
                                         {String(user?.bio || 'لا توجد نبذة شخصية مسجلة بعد.')}
                                     </div>
                                     <div className="flex gap-4 pt-2">
-                                        <div className="p-3 bg-purple-50/60 rounded-xl flex-1 text-center">
-                                            <span className="text-[10px] text-gray-500 font-bold block">رصيد الكوينز</span>
-                                            <span className="text-base font-black text-amber-600">{user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)}</span>
+                                        <div className="p-3 bg-purple-50/60 dark:bg-purple-950/40 rounded-xl flex-1 text-center border dark:border-darkBorder">
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold block">رصيد الكوينز</span>
+                                            <span className="text-base font-black text-amber-600 dark:text-amber-400">{user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)}</span>
                                         </div>
-                                        <div className="p-3 bg-purple-50/60 rounded-xl flex-1 text-center">
-                                            <span className="text-[10px] text-gray-500 font-bold block">المنشورات</span>
-                                            <span className="text-base font-black text-[#2E1A47]">{userPosts.length}</span>
+                                        <div className="p-3 bg-purple-50/60 dark:bg-purple-950/40 rounded-xl flex-1 text-center border dark:border-darkBorder">
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold block">المنشورات</span>
+                                            <span className="text-base font-black text-[#2E1A47] dark:text-white">{userPosts.length}</span>
                                         </div>
                                     </div>
 
-                                    <div className="md:hidden pt-4 border-t border-gray-100">
+                                    <div className="md:hidden pt-4 border-t border-gray-100 dark:border-darkBorder">
                                         <button 
                                             type="button" 
                                             onClick={onLogout} 
-                                            className="w-full py-3.5 bg-red-50 hover:bg-red-100 active:scale-[0.98] text-red-600 rounded-2xl font-black text-sm flex items-center justify-center gap-2 border border-red-100 transition-all shadow-sm"
+                                            className="w-full py-3.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/70 active:scale-[0.98] text-red-600 dark:text-red-300 rounded-2xl font-black text-sm flex items-center justify-center gap-2 border border-red-100 dark:border-red-900 transition-all shadow-sm"
                                         >
                                             <MotionIcon iconName="LogOut" size={18} />
                                             <span>تسجيل الخروج</span>
@@ -1663,24 +2002,24 @@
                                 </div>
                             ) : (
                                 <div className="space-y-4 animate-in fade-in">
-                                    <div className="flex items-center justify-between bg-purple-50/50 p-3.5 rounded-2xl border border-purple-100">
-                                        <span className="text-xs font-black text-[#2E1A47]">صورة البروفايل</span>
+                                    <div className="flex items-center justify-between bg-purple-50/50 dark:bg-purple-950/40 p-3.5 rounded-2xl border border-purple-100 dark:border-purple-900">
+                                        <span className="text-xs font-black text-[#2E1A47] dark:text-purple-300">صورة البروفايل</span>
                                         <div className="flex gap-2">
-                                            <label htmlFor="avatar-upload" className="cursor-pointer px-3 py-1.5 bg-[#2E1A47] text-white rounded-xl text-xs font-bold hover:bg-purple-900 transition-colors flex items-center gap-1.5">
+                                            <label htmlFor="avatar-upload" className="cursor-pointer px-3 py-1.5 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-xl text-xs font-bold hover:bg-purple-900 transition-colors flex items-center gap-1.5">
                                                 <MotionIcon iconName="Camera" size={14} />
                                                 <span>رفع صورة</span>
                                             </label>
                                             {avatar && (
-                                                <button type="button" onClick={() => setAvatar(null)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors">
+                                                <button type="button" onClick={() => setAvatar(null)} className="px-3 py-1.5 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-300 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors">
                                                     إزالة الصورة
                                                 </button>
                                             )}
                                         </div>
                                     </div>
-                                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl border outline-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="الاسم الكامل" />
-                                    <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl border h-24 outline-none resize-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="النبذة الشخصية" />
+                                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-2xl border dark:border-darkBorder outline-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="الاسم الكامل" />
+                                    <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full p-4 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-2xl border dark:border-darkBorder h-24 outline-none resize-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="النبذة الشخصية" />
                                     <div className="relative group">
-                                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-gray-50 rounded-2xl border outline-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="كلمة المرور الجديدة (اتركها فارغة إن لم ترغب بالتغيير)" />
+                                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-gray-50 dark:bg-darkBg text-gray-800 dark:text-gray-100 rounded-2xl border dark:border-darkBorder outline-none font-bold text-sm focus:ring-2 focus:ring-purple-200" placeholder="كلمة المرور الجديدة (اتركها فارغة إن لم ترغب بالتغيير)" />
                                     </div>
                                     <div className="flex gap-3 justify-center py-2">
                                         {['#2E1A47', '#8B5CF6', '#EF4444', '#10B981', '#F59E0B'].map(c => (
@@ -1688,26 +2027,26 @@
                                         ))}
                                     </div>
                                     <div className="flex gap-3">
-                                        <button onClick={() => { updateProfile({ name, bio, profileColor: color, avatar, ...(password.trim() && { password }) }); setIsEditing(false); setPassword(''); }} className="flex-1 py-4 bg-[#2E1A47] text-white rounded-2xl font-black shadow-xl active:scale-95 transition-all text-sm">
+                                        <button onClick={() => { updateProfile({ name, bio, profileColor: color, avatar, ...(password.trim() && { password }) }); setIsEditing(false); setPassword(''); }} className="flex-1 py-4 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-2xl font-black shadow-xl active:scale-95 transition-all text-sm">
                                             حفظ التعديلات
                                         </button>
-                                        <button onClick={() => { setIsEditing(false); setAvatar(user?.avatar || null); }} className="px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm">إلغاء</button>
+                                        <button onClick={() => { setIsEditing(false); setAvatar(user?.avatar || null); }} className="px-6 py-4 bg-gray-100 dark:bg-darkBorder text-gray-500 dark:text-gray-300 rounded-2xl font-black text-sm">إلغاء</button>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <h3 className="font-black px-4 text-[#2E1A47] text-base flex items-center gap-2">
-                            <MotionIcon iconName="FileText" size={18} className="text-purple-600" /> أرشيف منشوراتي
+                        <h3 className="font-black px-4 text-[#2E1A47] dark:text-purple-300 text-base flex items-center gap-2">
+                            <MotionIcon iconName="FileText" size={18} className="text-purple-600 dark:text-purple-400" /> أرشيف منشوراتي
                         </h3>
                         {userPosts.length > 0 ? userPosts.map(p => (
-                            <div key={p.id} className="bg-white p-5 rounded-2xl border flex justify-between items-center group shadow-sm hover:border-purple-200 transition-all">
+                            <div key={p.id} className="bg-white dark:bg-darkCard p-5 rounded-2xl border dark:border-darkBorder flex justify-between items-center group shadow-sm hover:border-purple-200 transition-all">
                                 <div className="flex-1">
-                                    <p className="text-xs font-bold text-gray-700 line-clamp-1">{String(p.content)}</p>
+                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200 line-clamp-1">{String(p.content)}</p>
                                     <span className="text-[9px] text-gray-400 font-bold">{new Date(p.timestamp).toLocaleDateString('ar-IQ')}</span>
                                 </div>
-                                <button type="button" onClick={() => onDeletePost(p.id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                                <button type="button" onClick={() => onDeletePost(p.id)} className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                     <MotionIcon iconName="Trash2" size={16}/>
                                 </button>
                             </div>
@@ -1749,30 +2088,30 @@
 
             return (
                 <div className="space-y-6 pb-28 animate-in fade-in">
-                    <div className="bg-white rounded-[3rem] p-7 md:p-9 border shadow-sm relative overflow-hidden">
+                    <div className="bg-white dark:bg-darkCard rounded-[3rem] p-7 md:p-9 border dark:border-darkBorder shadow-sm relative overflow-hidden">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                             <div className="flex items-center gap-4">
-                                <div className="p-4 bg-purple-100 rounded-2xl text-[#2E1A47] shadow-md active-pulse">
+                                <div className="p-4 bg-purple-100 dark:bg-purple-900/40 rounded-2xl text-[#2E1A47] dark:text-purple-300 shadow-md active-pulse">
                                     <MotionIcon iconName="ShieldCheck" size={32} />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl md:text-3xl font-black text-[#2E1A47] tracking-tight">لوحة تحكم الإدارة</h2>
+                                    <h2 className="text-2xl md:text-3xl font-black text-[#2E1A47] dark:text-white tracking-tight">لوحة تحكم الإدارة</h2>
                                     <p className="text-xs text-gray-400 font-bold mt-0.5">إدارة المستخدمين، الأرصدة وطلبات التمويل، والمحتوى</p>
                                 </div>
                             </div>
-                            <div className="flex gap-3 bg-gray-50 p-3 rounded-2xl border">
-                                <div className="text-center px-3 border-l border-gray-200">
+                            <div className="flex gap-3 bg-gray-50 dark:bg-darkBg p-3 rounded-2xl border dark:border-darkBorder">
+                                <div className="text-center px-3 border-l border-gray-200 dark:border-darkBorder">
                                     <span className="text-[10px] text-gray-400 font-bold block">إجمالي الأعضاء</span>
-                                    <span className="text-lg font-black text-[#2E1A47]">{users.length}</span>
+                                    <span className="text-lg font-black text-[#2E1A47] dark:text-white">{users.length}</span>
                                 </div>
                                 <div className="text-center px-3">
                                     <span className="text-[10px] text-gray-400 font-bold block">السيولة الإجمالية</span>
-                                    <span className="text-lg font-black text-amber-600">{totalCoins.toFixed(2)}</span>
+                                    <span className="text-lg font-black text-amber-600 dark:text-amber-400">{totalCoins.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-8 overflow-x-auto gap-1.5 custom-scrollbar">
+                        <div className="flex bg-gray-100 dark:bg-darkBg p-1.5 rounded-2xl mb-8 overflow-x-auto gap-1.5 custom-scrollbar border dark:border-darkBorder">
                             {[
                                 { id: 'users', label: 'المستخدمين والأرصدة', icon: 'User' },
                                 { id: 'loans', label: `طلبات التمويل ${pendingLoansCount > 0 ? `(${pendingLoansCount})` : ''}`, icon: 'Wallet' },
@@ -1780,7 +2119,7 @@
                                 { id: 'logs', label: 'سجلات الدخول', icon: 'Fingerprint' },
                                 { id: 'alerts', label: 'التنبيهات', icon: 'ShieldAlert' }
                             ].map(t => (
-                                <button key={t.id} onClick={() => setAdminTab(t.id)} className={`flex-1 py-3 px-4 rounded-xl font-black transition-all text-xs min-w-[130px] flex items-center justify-center gap-2 ${adminTab === t.id ? 'bg-white text-[#2E1A47] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                <button key={t.id} onClick={() => setAdminTab(t.id)} className={`flex-1 py-3 px-4 rounded-xl font-black transition-all text-xs min-w-[130px] flex items-center justify-center gap-2 ${adminTab === t.id ? 'bg-white dark:bg-darkCard text-[#2E1A47] dark:text-amber-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                     <MotionIcon iconName={t.icon} size={16} /> 
                                     <span>{t.label}</span>
                                 </button>
@@ -1790,7 +2129,7 @@
                         {adminTab === 'users' && (
                             <div className="space-y-4 animate-in slide-in-bottom">
                                 {users.map(u => (
-                                    <div key={u.id} className="p-5 bg-gray-50/70 rounded-3xl border flex flex-col gap-4 hover:border-purple-200 transition-colors">
+                                    <div key={u.id} className="p-5 bg-gray-50/70 dark:bg-darkBg rounded-3xl border dark:border-darkBorder flex flex-col gap-4 hover:border-purple-200 dark:hover:border-purple-700 transition-colors">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md p-1 overflow-hidden" style={{ backgroundColor: u.profileColor || '#2E1A47' }}>
@@ -1798,16 +2137,16 @@
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-black text-[#2E1A47] text-base">{String(u.name)}</p>
+                                                        <p className="font-black text-[#2E1A47] dark:text-white text-base">{String(u.name)}</p>
                                                         {u.verified && <VerifiedBadge size={18} />}
-                                                        {u.role === 'admin' && <span className="bg-purple-100 text-[#2E1A47] text-[9px] font-black px-2 py-0.5 rounded-md">مسؤول</span>}
+                                                        {u.role === 'admin' && <span className="bg-purple-100 dark:bg-purple-900/60 text-[#2E1A47] dark:text-purple-300 text-[9px] font-black px-2 py-0.5 rounded-md">مسؤول</span>}
                                                     </div>
-                                                    <p className="text-[11px] text-gray-400 font-bold mt-0.5">@{String(u.username)} • رصيد: <b className="text-amber-600 font-black">{Number(u.balance || 0).toFixed(2)} كوين</b></p>
+                                                    <p className="text-[11px] text-gray-400 font-bold mt-0.5">@{String(u.username)} • رصيد: <b className="text-amber-600 dark:text-amber-400 font-black">{Number(u.balance || 0).toFixed(2)} كوين</b></p>
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2 justify-end">
-                                                <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-xl border text-xs">
-                                                    <span className="font-mono font-bold text-purple-700">{showPass[u.id] ? String(u.password) : '••••••••'}</span>
+                                                <div className="flex items-center gap-1 bg-white dark:bg-darkCard px-3 py-1.5 rounded-xl border dark:border-darkBorder text-xs">
+                                                    <span className="font-mono font-bold text-purple-700 dark:text-purple-300">{showPass[u.id] ? String(u.password) : '••••••••'}</span>
                                                     <button onClick={() => setShowPass({...showPass, [u.id]: !showPass[u.id]})} className="p-1 text-gray-400 hover:text-purple-600">
                                                         <MotionIcon iconName="EyeOff" size={15}/>
                                                     </button>
@@ -1818,7 +2157,7 @@
                                                 <button 
                                                     type="button" 
                                                     onClick={() => updateUser(u.id, { verified: !u.verified })} 
-                                                    className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm ${u.verified ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 hover:bg-blue-50 text-gray-600'}`}
+                                                    className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm ${u.verified ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' : 'bg-gray-100 dark:bg-darkCard hover:bg-blue-50 text-gray-600 dark:text-gray-300 border dark:border-darkBorder'}`}
                                                     title={u.verified ? "إلغاء التوثيق" : "توثيق هذا الحساب"}
                                                 >
                                                     <VerifiedBadge size={14} />
@@ -1826,7 +2165,7 @@
                                                 </button>
                                                 {u.role !== 'admin' && (
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => updateUser(u.id, { status: u.status === 'active' ? 'banned' : 'active' })} className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${u.status === 'active' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-green-600 text-white'}`}>
+                                                        <button onClick={() => updateUser(u.id, { status: u.status === 'active' ? 'banned' : 'active' })} className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${u.status === 'active' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-green-600 text-white'}`}>
                                                             {u.status === 'active' ? 'حظر الحساب' : 'فك الحظر'}
                                                         </button>
                                                         <button 
@@ -1843,30 +2182,30 @@
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                                            <span className="text-[11px] font-bold text-gray-500 min-w-fit">التحكم بالرصيد:</span>
+                                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-darkBorder">
+                                            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 min-w-fit">التحكم بالرصيد:</span>
                                             <input 
                                                 type="number" 
                                                 placeholder="المبلغ" 
-                                                className="w-28 p-2 bg-white rounded-xl border text-xs font-bold outline-none" 
+                                                className="w-28 p-2 bg-white dark:bg-darkCard text-gray-800 dark:text-gray-100 rounded-xl border dark:border-darkBorder text-xs font-bold outline-none" 
                                                 value={coinInputs[u.id] || ''} 
                                                 onChange={e => setCoinInputs({ ...coinInputs, [u.id]: e.target.value })}
                                             />
                                             <button onClick={() => { onAdjustCoins(u.id, parseFloat(coinInputs[u.id] || 0)); setCoinInputs({ ...coinInputs, [u.id]: '' }); }} className="px-3 py-2 bg-amber-500 text-white rounded-xl text-xs font-black shadow-sm hover:bg-amber-600">
                                                 + إضافة
                                             </button>
-                                            <button onClick={() => { onAdjustCoins(u.id, -parseFloat(coinInputs[u.id] || 0)); setCoinInputs({ ...coinInputs, [u.id]: '' }); }} className="px-3 py-2 bg-red-100 text-red-700 rounded-xl text-xs font-black hover:bg-red-200">
+                                            <button onClick={() => { onAdjustCoins(u.id, -parseFloat(coinInputs[u.id] || 0)); setCoinInputs({ ...coinInputs, [u.id]: '' }); }} className="px-3 py-2 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 rounded-xl text-xs font-black hover:bg-red-200">
                                                 - خصم
                                             </button>
                                         </div>
 
                                         {editingPassUserId === u.id && (
-                                            <div className="flex gap-2 items-center bg-white p-3 rounded-2xl border-2 border-purple-200 animate-in slide-in-bottom">
-                                                <input type="text" placeholder="كلمة المرور الجديدة..." className="flex-1 bg-gray-50 p-2.5 rounded-xl text-xs outline-none font-bold" value={newPassInput} onChange={e => setNewPassInput(e.target.value)} />
-                                                <button onClick={() => handleResetPassword(u.id)} className="p-2.5 bg-[#2E1A47] text-white rounded-xl text-xs font-bold">
+                                            <div className="flex gap-2 items-center bg-white dark:bg-darkCard p-3 rounded-2xl border-2 border-purple-200 dark:border-purple-700 animate-in slide-in-bottom">
+                                                <input type="text" placeholder="كلمة المرور الجديدة..." className="flex-1 bg-gray-50 dark:bg-darkBg p-2.5 rounded-xl text-xs outline-none font-bold text-gray-800 dark:text-gray-100" value={newPassInput} onChange={e => setNewPassInput(e.target.value)} />
+                                                <button onClick={() => handleResetPassword(u.id)} className="p-2.5 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-xl text-xs font-bold">
                                                     حفظ
                                                 </button>
-                                                <button onClick={() => setEditingPassUserId(null)} className="p-2.5 bg-gray-100 text-gray-500 rounded-xl text-xs">
+                                                <button onClick={() => setEditingPassUserId(null)} className="p-2.5 bg-gray-100 dark:bg-darkBorder text-gray-500 dark:text-gray-300 rounded-xl text-xs">
                                                     إلغاء
                                                 </button>
                                             </div>
@@ -1878,23 +2217,23 @@
 
                         {adminTab === 'loans' && (
                             <div className="space-y-4 animate-in slide-in-bottom">
-                                <h4 className="font-black text-[#2E1A47] text-sm px-2">طلبات التمويل الواردة للموافقة</h4>
+                                <h4 className="font-black text-[#2E1A47] dark:text-purple-300 text-sm px-2">طلبات التمويل الواردة للموافقة</h4>
                                 {(loanRequests || []).length > 0 ? (
                                     loanRequests.map(loan => {
                                         const reqUser = users.find(u => u.id === loan.userId);
                                         const isPending = loan.status === 'pending';
                                         return (
-                                            <div key={loan.id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div key={loan.id} className="p-4 bg-white dark:bg-darkBg border border-gray-100 dark:border-darkBorder rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-black text-sm text-[#2E1A47]">{reqUser?.name || 'مستخدم'}</span>
+                                                        <span className="font-black text-sm text-[#2E1A47] dark:text-white">{reqUser?.name || 'مستخدم'}</span>
                                                         <span className="text-[10px] text-gray-400">@{reqUser?.username}</span>
-                                                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${isPending ? 'bg-amber-100 text-amber-700' : (loan.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}`}>
+                                                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${isPending ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' : (loan.status === 'approved' ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300')}`}>
                                                             {isPending ? 'قيد الانتظار' : (loan.status === 'approved' ? 'تمت الموافقة' : 'مرفوض')}
                                                         </span>
                                                     </div>
-                                                    <p className="text-xs font-bold text-gray-600 mt-1">
-                                                        المبلغ المطلوب: <b className="text-amber-600 font-black">{loan.amount} كوين</b> • {new Date(loan.time).toLocaleTimeString('ar-IQ')}
+                                                    <p className="text-xs font-bold text-gray-600 dark:text-gray-300 mt-1">
+                                                        المبلغ المطلوب: <b className="text-amber-600 dark:text-amber-400 font-black">{loan.amount} كوين</b> • {new Date(loan.time).toLocaleTimeString('ar-IQ')}
                                                     </p>
                                                 </div>
                                                 {isPending ? (
@@ -1907,7 +2246,7 @@
                                                         </button>
                                                         <button 
                                                             onClick={() => onRejectLoan(loan.id)} 
-                                                            className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-xs font-black"
+                                                            className="px-4 py-2 bg-red-100 dark:bg-red-950/60 hover:bg-red-200 text-red-700 dark:text-red-300 rounded-xl text-xs font-black"
                                                         >
                                                             رفض
                                                         </button>
@@ -1927,15 +2266,15 @@
                         {adminTab === 'content' && (
                             <div className="space-y-3 animate-in slide-in-bottom">
                                 <div className="flex items-center justify-between mb-4 px-2">
-                                    <h4 className="font-black text-[#2E1A47] text-sm">سجل المنشورات العام ({posts.length})</h4>
+                                    <h4 className="font-black text-[#2E1A47] dark:text-purple-300 text-sm">سجل المنشورات العام ({posts.length})</h4>
                                 </div>
                                 {posts.map(p => (
-                                    <div key={p.id} className="p-5 bg-white border border-gray-100 rounded-2xl flex justify-between items-center group shadow-sm hover:border-red-100 transition-all">
+                                    <div key={p.id} className="p-5 bg-white dark:bg-darkBg border border-gray-100 dark:border-darkBorder rounded-2xl flex justify-between items-center group shadow-sm hover:border-red-100 transition-all">
                                         <div className="flex-1 text-right pl-4">
-                                            <p className="font-black text-[#2E1A47] text-xs mb-1">{p.authorName} <span className="text-gray-400 font-bold text-[10px]">({new Date(p.timestamp).toLocaleString('ar-IQ')})</span></p>
-                                            <p className="text-xs text-gray-600 font-bold leading-relaxed line-clamp-2">{p.content}</p>
+                                            <p className="font-black text-[#2E1A47] dark:text-white text-xs mb-1">{p.authorName} <span className="text-gray-400 font-bold text-[10px]">({new Date(p.timestamp).toLocaleString('ar-IQ')})</span></p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-300 font-bold leading-relaxed line-clamp-2">{p.content}</p>
                                         </div>
-                                        <button onClick={() => onDeletePost(p.id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                                        <button onClick={() => onDeletePost(p.id)} className="p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                             <MotionIcon iconName="Trash2" size={18} />
                                         </button>
                                     </div>
@@ -1945,18 +2284,18 @@
 
                         {adminTab === 'logs' && (
                             <div className="space-y-3 animate-in slide-in-bottom">
-                                <h4 className="font-black text-red-600 flex items-center gap-2 mb-4 px-2 text-base">
+                                <h4 className="font-black text-red-600 dark:text-red-400 flex items-center gap-2 mb-4 px-2 text-base">
                                     <MotionIcon iconName="Fingerprint" size={20}/> سجلات الوصول
                                 </h4>
                                 {loginLogs.map(log => (
-                                    <div key={log.id} className="p-4 bg-white border rounded-2xl flex items-center justify-between shadow-sm">
+                                    <div key={log.id} className="p-4 bg-white dark:bg-darkBg border dark:border-darkBorder rounded-2xl flex items-center justify-between shadow-sm">
                                         <div className="flex items-center gap-3.5 text-right">
-                                            <div className="p-3 bg-purple-50 text-purple-700 rounded-xl"><MotionIcon iconName="Activity" size={18}/></div>
+                                            <div className="p-3 bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-xl"><MotionIcon iconName="Activity" size={18}/></div>
                                             <div>
-                                                <p className="text-sm font-black text-[#2E1A47]">{String(log.userName)}</p>
+                                                <p className="text-sm font-black text-[#2E1A47] dark:text-white">{String(log.userName)}</p>
                                                 <div className="flex items-center gap-2 mt-1 font-bold">
-                                                    <span className="text-[10px] bg-gray-100 px-2.5 py-0.5 rounded-md text-gray-600">{String(log.device)}</span>
-                                                    <span className="text-[10px] bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-md border border-purple-100">{String(log.ip)}</span>
+                                                    <span className="text-[10px] bg-gray-100 dark:bg-darkCard px-2.5 py-0.5 rounded-md text-gray-600 dark:text-gray-300">{String(log.device)}</span>
+                                                    <span className="text-[10px] bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-md border border-purple-100 dark:border-purple-800">{String(log.ip)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1970,15 +2309,15 @@
 
                         {adminTab === 'alerts' && (
                             <div className="space-y-4 animate-in slide-in-bottom">
-                                <div className="bg-red-50/70 p-6 rounded-3xl border border-red-100 relative">
-                                    <h4 className="font-black text-red-800 mb-4 flex items-center gap-2 text-lg">
+                                <div className="bg-red-50/70 dark:bg-red-950/40 p-6 rounded-3xl border border-red-100 dark:border-red-900 relative">
+                                    <h4 className="font-black text-red-800 dark:text-red-300 mb-4 flex items-center gap-2 text-lg">
                                         <MotionIcon iconName="ShieldAlert" size={22}/> إرسال تنبيه للمستخدم
                                     </h4>
-                                    <select className="w-full p-4 bg-white rounded-2xl border outline-none mb-3 text-xs font-black shadow-sm" value={selectedUserAlert || ''} onChange={e => setSelectedUserAlert(e.target.value)}>
+                                    <select className="w-full p-4 bg-white dark:bg-darkBg rounded-2xl border dark:border-darkBorder outline-none mb-3 text-xs font-black shadow-sm text-gray-800 dark:text-gray-100" value={selectedUserAlert || ''} onChange={e => setSelectedUserAlert(e.target.value)}>
                                         <option value="">اختر الحساب لإرسال التنبيه...</option>
                                         {users.filter(u => u.role !== 'admin').map(u => <option key={u.id} value={u.id}>{String(u.name)} (@{String(u.username)})</option>)}
                                     </select>
-                                    <textarea placeholder="اكتب نص التنبيه أو التوجيه..." className="w-full p-4 bg-white rounded-2xl border h-32 outline-none text-xs font-bold resize-none mb-4 shadow-sm" value={alertText} onChange={e => setAlertText(e.target.value)} />
+                                    <textarea placeholder="اكتب نص التنبيه أو التوجيه..." className="w-full p-4 bg-white dark:bg-darkBg rounded-2xl border dark:border-darkBorder h-32 outline-none text-xs font-bold resize-none mb-4 shadow-sm text-gray-800 dark:text-gray-100" value={alertText} onChange={e => setAlertText(e.target.value)} />
                                     <button onClick={sendAlert} disabled={!alertText.trim() || !selectedUserAlert} className="w-full py-4 bg-red-600 text-white rounded-2xl font-black shadow-xl active:scale-95 disabled:opacity-40 transition-all text-sm flex items-center justify-center gap-2">
                                         <MotionIcon iconName="Send" className="rotate-180" size={17} />
                                         <span>إرسال التنبيه الآن</span>
@@ -2010,6 +2349,16 @@
             const [loanModalAmount, setLoanModalAmount] = useState(null);
 
             const [viewingProfileUser, setViewingProfileUser] = useState(null);
+            const [isWheelOpen, setIsWheelOpen] = useState(false);
+            const [isFreeSpinActive, setFreeSpinActive] = useState(false);
+            const [liveTransferNotice, setLiveTransferNotice] = useState(null);
+            const [isDark, setIsDark] = useState(() => {
+                try {
+                    return localStorage.getItem('risala_theme') === 'dark';
+                } catch(e) {
+                    return false;
+                }
+            });
 
             const prevMessagesCountRef = useRef(0);
             const isInitialLoadRef = useRef(true);
@@ -2019,6 +2368,29 @@
                 if (!user) return 0;
                 return messages.filter(m => !m.groupId && m.to === user.id && !m.read).length;
             }, [messages, user]);
+
+            const toggleDarkMode = () => {
+                setIsDark(prev => {
+                    const next = !prev;
+                    try {
+                        localStorage.setItem('risala_theme', next ? 'dark' : 'light');
+                    } catch(e) {}
+                    if (next) {
+                        document.body.classList.add('dark');
+                    } else {
+                        document.body.classList.remove('dark');
+                    }
+                    return next;
+                });
+            };
+
+            useEffect(() => {
+                if (isDark) {
+                    document.body.classList.add('dark');
+                } else {
+                    document.body.classList.remove('dark');
+                }
+            }, [isDark]);
 
             useEffect(() => {
                 if (!user || messages.length === 0) return;
@@ -2047,6 +2419,50 @@
 
                 prevMessagesCountRef.current = messages.length;
             }, [messages.length, user, groups]);
+
+            // الاستماع الفوري لإشعارات التحويل المباشرة بين الطرفين عبر Firebase
+            useEffect(() => {
+                if (!rtdb || !user) return;
+
+                const transfersRef = rtdb.ref('risala_transfers');
+                const onNewTransfer = (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) return;
+
+                    const transfersList = Object.values(data);
+                    if (transfersList.length === 0) return;
+                    
+                    const latest = transfersList[transfersList.length - 1];
+                    if (latest && (latest.toId === user.id || latest.fromId === user.id)) {
+                        const diff = Date.now() - (latest.timestamp || 0);
+                        if (diff < 10000) {
+                            if (latest.toId === user.id) {
+                                playWinSound();
+                                setLiveTransferNotice({
+                                    type: 'receive',
+                                    title: '📥 استلام كوينز فوري!',
+                                    msg: `وصلتك حوالة مالية بقيمة ${Number(latest.amount).toFixed(2)} كوين من @${latest.fromUsername}`
+                                });
+                                triggerSystemNotification(
+                                    "📥 استلام كوينز فوري!",
+                                    `وصلتك حوالة مالية بقيمة ${Number(latest.amount).toFixed(2)} كوين من @${latest.fromUsername}`,
+                                    `transfer-in-${latest.id}`
+                                );
+                            } else if (latest.fromId === user.id) {
+                                setLiveTransferNotice({
+                                    type: 'send',
+                                    title: '📤 تم التحويل بنجاح!',
+                                    msg: `تم خصم وإرسال ${Number(latest.amount).toFixed(2)} كوين إلى @${latest.toUsername}`
+                                });
+                            }
+                            setTimeout(() => setLiveTransferNotice(null), 5000);
+                        }
+                    }
+                };
+
+                transfersRef.limitToLast(1).on('child_added', onNewTransfer);
+                return () => transfersRef.off();
+            }, [user?.id]);
 
             useEffect(() => {
                 if (!user) return;
@@ -2161,7 +2577,8 @@
                                         balance: meUpdated.balance,
                                         history: meUpdated.history || [],
                                         verified: meUpdated.verified,
-                                        status: meUpdated.status
+                                        status: meUpdated.status,
+                                        lastSpinTime: meUpdated.lastSpinTime || prev.lastSpinTime
                                     }));
                                 }
                             }
@@ -2328,6 +2745,50 @@
                 setUsers(updatedUsers);
                 setUser(prev => ({ ...prev, ...newData }));
                 if (rtdb) rtdb.ref('risala_users').set(updatedUsers);
+            };
+
+            // معالجة فوز عجلة الحظ وتحديث مؤقت الـ 3 ساعات
+            const handleSpinWheelWin = (wonAmount, applyCooldown = true) => {
+                if (!user) return;
+                const currentTime = new Date().toLocaleTimeString('ar-IQ');
+                const nowTime = Date.now();
+                const newBal = Number(user.balance || 0) + wonAmount;
+
+                const updatedUsers = users.map(u => {
+                    if (u.id === user.id) {
+                        const newHistory = wonAmount > 0 ? [...(u.history || []), {
+                            type: 'in',
+                            msg: `جائزة عجلة الحظ 🎡`,
+                            amount: wonAmount,
+                            time: currentTime
+                        }] : (u.history || []);
+
+                        return {
+                            ...u,
+                            balance: newBal,
+                            history: newHistory,
+                            lastSpinTime: applyCooldown ? nowTime : (u.lastSpinTime || 0)
+                        };
+                    }
+                    return u;
+                });
+
+                setUsers(updatedUsers);
+                setUser(prev => ({
+                    ...prev,
+                    balance: newBal,
+                    history: wonAmount > 0 ? [...(prev.history || []), {
+                        type: 'in',
+                        msg: `جائزة عجلة الحظ 🎡`,
+                        amount: wonAmount,
+                        time: currentTime
+                    }] : (prev.history || []),
+                    lastSpinTime: applyCooldown ? nowTime : (prev.lastSpinTime || 0)
+                }));
+
+                if (rtdb) {
+                    rtdb.ref('risala_users').set(updatedUsers);
+                }
             };
 
             const createPost = (content, image = null) => {
@@ -2759,10 +3220,22 @@
                     history: [...(prev.history || []), senderHistoryItem]
                 }));
 
+                // تسجيل التحويل المباشر في Firebase للمزامنة اللحظية بين الطرفين
                 if (rtdb) {
                     rtdb.ref('risala_users').set(updatedUsers).catch(e => {
                         console.error("خطأ مزامنة الرصيد:", e);
                     });
+
+                    const transferLog = {
+                        id: 'tr_' + Date.now(),
+                        fromId: user.id,
+                        fromUsername: user.username,
+                        toId: recipientObj.id,
+                        toUsername: recipientObj.username,
+                        amount: amount,
+                        timestamp: Date.now()
+                    };
+                    rtdb.ref('risala_transfers').push(transferLog);
                 }
 
                 return {
@@ -2781,8 +3254,11 @@
 
             if (view === 'login' || view === 'register') {
                 return (
-                    <div className="min-h-screen flex items-center justify-center p-5 bg-[#FDFCF8]" dir="rtl">
-                        <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 animate-in zoom-in-95 relative">
+                    <div className="min-h-screen flex items-center justify-center p-5 bg-[#FDFCF8] dark:bg-darkBg transition-colors" dir="rtl">
+                        <div className="w-full max-w-md bg-white dark:bg-darkCard rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-darkBorder animate-in zoom-in-95 relative">
+                            <div className="absolute top-4 left-4 z-20">
+                                <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+                            </div>
                             <div className={`p-9 text-center text-white ${UI_CONFIG.inkGradient} relative overflow-hidden`}>
                                 <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle,rgba(255,255,255,0.4)1px,transparent 1px)] [background-size:20px_20px]"></div>
                                 <div className="relative z-10">
@@ -2802,14 +3278,48 @@
             }
 
             return (
-                <div className="flex flex-col h-screen text-right" dir="rtl" style={{ backgroundColor: UI_CONFIG.colors.milkyWhite }}>
+                <div className="flex flex-col h-screen text-right bg-[#FDFCF8] dark:bg-darkBg text-gray-800 dark:text-gray-100 transition-colors" dir="rtl">
+                    {/* نافذة عجلة الحظ مع مؤقت الـ 3 ساعات */}
+                    <LuckyWheelModal 
+                        isOpen={isWheelOpen} 
+                        onClose={() => setIsWheelOpen(false)} 
+                        onSpinWin={handleSpinWheelWin}
+                        lastSpinTime={user?.lastSpinTime || 0}
+                        isFreeSpinActive={isFreeSpinActive}
+                        setFreeSpinActive={setFreeSpinActive}
+                    />
+
+                    {/* إشعار التحويل المباشر اللحظي المنبثق بين الطرفين */}
+                    {liveTransferNotice && (
+                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[350] w-11/12 max-w-md animate-in slide-in-bottom">
+                            <div className={`p-4 rounded-2xl shadow-2xl border flex items-center justify-between backdrop-blur-md ${
+                                liveTransferNotice.type === 'receive' 
+                                    ? 'bg-green-600/95 text-white border-green-400' 
+                                    : 'bg-[#2E1A47]/95 text-white border-amber-400'
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-xl bg-white/20 text-xl animate-bounce">
+                                        {liveTransferNotice.type === 'receive' ? '💰' : '✈️'}
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-sm">{liveTransferNotice.title}</p>
+                                        <p className="text-xs opacity-90 font-bold">{liveTransferNotice.msg}</p>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={() => setLiveTransferNotice(null)} className="p-1 hover:bg-white/20 rounded-lg">
+                                    <MotionIcon iconName="X" size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {viewingProfileUser && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm animate-in zoom-in-95">
-                            <div className="bg-white rounded-[2.5rem] p-7 max-w-sm w-full text-center shadow-2xl border border-gray-100 relative overflow-hidden">
+                            <div className="bg-white dark:bg-darkCard rounded-[2.5rem] p-7 max-w-sm w-full text-center shadow-2xl border border-gray-100 dark:border-darkBorder relative overflow-hidden">
                                 <button 
                                     type="button" 
                                     onClick={() => setViewingProfileUser(null)} 
-                                    className="absolute top-4 left-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-all"
+                                    className="absolute top-4 left-4 p-2 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 rounded-xl transition-all"
                                 >
                                     <MotionIcon iconName="X" size={16} />
                                 </button>
@@ -2823,12 +3333,12 @@
                                 </div>
 
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <h3 className="text-xl font-black text-[#2E1A47] tracking-tight">{viewingProfileUser.name}</h3>
+                                    <h3 className="text-xl font-black text-[#2E1A47] dark:text-white tracking-tight">{viewingProfileUser.name}</h3>
                                     {Boolean(users.find(u => u.id === viewingProfileUser.id)?.verified || viewingProfileUser.verified) && <VerifiedBadge size={20} />}
                                 </div>
-                                <p className="text-xs text-purple-600 font-bold mt-0.5">@{viewingProfileUser.username}</p>
+                                <p className="text-xs text-purple-600 dark:text-purple-400 font-bold mt-0.5">@{viewingProfileUser.username}</p>
 
-                                <div className="bg-gray-50 p-4 rounded-2xl border text-xs text-gray-600 font-bold my-4 leading-relaxed italic text-right">
+                                <div className="bg-gray-50 dark:bg-darkBg p-4 rounded-2xl border dark:border-darkBorder text-xs text-gray-600 dark:text-gray-300 font-bold my-4 leading-relaxed italic text-right">
                                     {viewingProfileUser.bio || 'لا توجد نبذة شخصية مسجلة بعد.'}
                                 </div>
 
@@ -2841,7 +3351,7 @@
                                             setSelectedChatTarget(target);
                                             setView('messages');
                                         }} 
-                                        className="flex-1 py-3.5 bg-[#2E1A47] text-white rounded-xl font-black shadow-lg hover:bg-purple-900 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
+                                        className="flex-1 py-3.5 bg-[#2E1A47] dark:bg-purple-700 text-white rounded-xl font-black shadow-lg hover:bg-purple-900 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
                                     >
                                         <MotionIcon iconName="MessageSquare" size={16} />
                                         <span>مراسلة الشخص</span>
@@ -2850,7 +3360,7 @@
                                     <button 
                                         type="button" 
                                         onClick={() => setViewingProfileUser(null)} 
-                                        className="px-5 py-3.5 bg-gray-100 text-gray-500 rounded-xl font-black text-xs hover:bg-gray-200 transition-all"
+                                        className="px-5 py-3.5 bg-gray-100 dark:bg-darkBorder text-gray-500 dark:text-gray-300 rounded-xl font-black text-xs hover:bg-gray-200 transition-all"
                                     >
                                         إغلاق
                                     </button>
@@ -2861,12 +3371,12 @@
 
                     {activeAlert && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-                            <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border-2 border-red-500 animate-in zoom-in-95">
-                                <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                            <div className="bg-white dark:bg-darkCard rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border-2 border-red-500 animate-in zoom-in-95">
+                                <div className="w-16 h-16 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
                                     <MotionIcon iconName="ShieldAlert" size={32} />
                                 </div>
-                                <h3 className="text-xl font-bold text-[#2E1A47] mb-2">تنبيه من الإدارة</h3>
-                                <div className="bg-gray-50 p-4 rounded-2xl mb-6 text-xs text-gray-700 leading-relaxed font-bold">{activeAlert}</div>
+                                <h3 className="text-xl font-bold text-[#2E1A47] dark:text-white mb-2">تنبيه من الإدارة</h3>
+                                <div className="bg-gray-50 dark:bg-darkBg p-4 rounded-2xl mb-6 text-xs text-gray-700 dark:text-gray-200 leading-relaxed font-bold">{activeAlert}</div>
                                 <button type="button" onClick={() => { 
                                     setActiveAlert(null); 
                                     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, alert: null } : u)); 
@@ -2877,15 +3387,15 @@
 
                     {loanModalAmount && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-                            <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border border-amber-400 animate-in zoom-in-95">
-                                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <div className="bg-white dark:bg-darkCard rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border border-amber-400 animate-in zoom-in-95">
+                                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                     <i className="fa-solid fa-vault text-2xl"></i>
                                 </div>
-                                <h3 className="text-lg font-black text-[#2E1A47] mb-1">طلب تمويل رصيد</h3>
-                                <p className="text-xs text-gray-500 font-bold mb-4">
-                                    سيتم إرسال طلب تمويل بقيمة <span className="text-amber-600 font-black text-sm">{loanModalAmount} كوين</span> إلى الإدارة للمراجعة والموافقة.
+                                <h3 className="text-lg font-black text-[#2E1A47] dark:text-white mb-1">طلب تمويل رصيد</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold mb-4">
+                                    سيتم إرسال طلب تمويل بقيمة <span className="text-amber-600 dark:text-amber-400 font-black text-sm">{loanModalAmount} كوين</span> إلى الإدارة للمراجعة والموافقة.
                                 </p>
-                                <div className="bg-gray-50 p-3 rounded-xl text-xs font-bold text-gray-600 mb-5 border">
+                                <div className="bg-gray-50 dark:bg-darkBg p-3 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 mb-5 border dark:border-darkBorder">
                                     تتم إضافة الرصيد بعد موافقة المسؤول
                                 </div>
                                 <div className="space-y-2">
@@ -2921,53 +3431,65 @@
                         </div>
                     )}
 
-                    {/* الشريط العلوي للهواتف */}
-                    <header className="md:hidden sticky top-0 z-[70] px-4 py-2.5 flex justify-between items-center glass-morphism border-b border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-                            <div className={`p-1.5 rounded-xl ${UI_CONFIG.inkGradient} text-white shadow-sm`}>
-                                <MotionIcon iconName="Send" className="rotate-180" size={16} />
-                            </div>
-                            <div>
-                                <span className="font-black text-sm text-[#2E1A47] block leading-tight">رسالة</span>
-                                <span className="text-[8px] text-gray-400 font-bold block leading-none">تواصل ومدفوعات</span>
-                            </div>
-                        </div>
+                    {/* الشريط العلوي للهواتف مع زر الوضع الليلي بجانب الأيقونة */}
+                    <header className="md:hidden sticky top-0 z-[70] px-4 py-2.5 flex justify-between items-center glass-morphism border-b border-gray-100 dark:border-darkBorder shadow-sm">
                         <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => setView('bank')} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
-                                <MotionIcon iconName="Coins" size={13} className="text-amber-600" />
-                                <span className="text-[11px] font-black text-[#2E1A47]">
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+                                <div className={`p-1.5 rounded-xl ${UI_CONFIG.inkGradient} text-white shadow-sm`}>
+                                    <MotionIcon iconName="Send" className="rotate-180" size={16} />
+                                </div>
+                                <div>
+                                    <span className="font-black text-sm text-[#2E1A47] dark:text-white block leading-tight">رسالة</span>
+                                    <span className="text-[8px] text-gray-400 font-bold block leading-none">تواصل ومدفوعات</span>
+                                </div>
+                            </div>
+
+                            {/* زر الوضع الليلي مباشرة بجانب الشعار */}
+                            <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setView('bank')} className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 px-2.5 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
+                                <MotionIcon iconName="Coins" size={13} className="text-amber-600 dark:text-amber-400" />
+                                <span className="text-[11px] font-black text-[#2E1A47] dark:text-amber-300">
                                     {user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)} كوين
                                 </span>
                             </button>
-                            <button type="button" onClick={() => setView('profile')} className="flex items-center gap-1.5 bg-white border border-gray-100 px-2 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
+                            <button type="button" onClick={() => setView('profile')} className="flex items-center gap-1.5 bg-white dark:bg-darkCard border border-gray-100 dark:border-darkBorder px-2 py-1 rounded-xl shadow-xs active:scale-95 transition-all">
                                 <div className="w-5 h-5 rounded-md flex items-center justify-center text-white font-black text-[10px] overflow-hidden" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
                                     {user?.avatar ? <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" /> : String(user?.name)?.[0]}
                                 </div>
-                                <span className="text-[10px] font-bold text-[#2E1A47] max-w-[55px] truncate">{String(user?.name)}</span>
+                                <span className="text-[10px] font-bold text-[#2E1A47] dark:text-gray-200 max-w-[55px] truncate">{String(user?.name)}</span>
                             </button>
                         </div>
                     </header>
 
-                    {/* الشريط العلوي للحواسيب */}
-                    <header className={`hidden md:flex sticky top-0 z-[70] px-6 py-3.5 justify-between items-center ${UI_CONFIG.glassEffect} border-b shadow-sm`}>
-                        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('home')}>
-                            <div className={`p-2 rounded-xl ${UI_CONFIG.inkGradient} shadow-md shadow-purple-900/20 group-hover:rotate-6 transition-transform`}>
-                                <MotionIcon iconName="Send" className="text-white rotate-180" size={20} />
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-black tracking-tight" style={{ color: UI_CONFIG.colors.inkPurple }}>رسالة</h1>
-                                <span className="text-[9px] text-gray-400 font-bold -mt-1 block">تواصل ومدفوعات</span>
-                            </div>
-                        </div>
+                    {/* الشريط العلوي للحواسيب مع زر الوضع الليلي بجانب الأيقونة */}
+                    <header className={`hidden md:flex sticky top-0 z-[70] px-6 py-3.5 justify-between items-center ${UI_CONFIG.glassEffect} border-b dark:border-darkBorder shadow-sm`}>
                         <div className="flex items-center gap-3">
-                            <button type="button" onClick={() => setView('bank')} className="flex items-center gap-2 bg-amber-50 border border-amber-200/80 px-3.5 py-1.5 rounded-2xl shadow-sm hover:scale-105 transition-all">
-                                <MotionIcon iconName="Coins" size={16} className="text-amber-600" />
-                                <span className="text-xs font-black text-[#2E1A47]">{user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)} كوين</span>
+                            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('home')}>
+                                <div className={`p-2 rounded-xl ${UI_CONFIG.inkGradient} shadow-md shadow-purple-900/20 group-hover:rotate-6 transition-transform`}>
+                                    <MotionIcon iconName="Send" className="text-white rotate-180" size={20} />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-black tracking-tight text-[#2E1A47] dark:text-white">رسالة</h1>
+                                    <span className="text-[9px] text-gray-400 font-bold -mt-1 block">تواصل ومدفوعات</span>
+                                </div>
+                            </div>
+
+                            {/* زر التبديل إلى الوضع الليلي */}
+                            <DarkModeToggle isDark={isDark} onToggle={toggleDarkMode} />
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button type="button" onClick={() => setView('bank')} className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 px-3.5 py-1.5 rounded-2xl shadow-sm hover:scale-105 transition-all">
+                                <MotionIcon iconName="Coins" size={16} className="text-amber-600 dark:text-amber-400" />
+                                <span className="text-xs font-black text-[#2E1A47] dark:text-amber-300">{user?.role === 'admin' ? "∞" : Number(user?.balance || 0).toFixed(2)} كوين</span>
                             </button>
-                            <button type="button" onClick={() => setView('profile')} className="flex items-center gap-2.5 bg-white border px-3 py-1.5 rounded-2xl shadow-sm hover:border-purple-300 transition-all group">
+                            <button type="button" onClick={() => setView('profile')} className="flex items-center gap-2.5 bg-white dark:bg-darkCard border dark:border-darkBorder px-3 py-1.5 rounded-2xl shadow-sm hover:border-purple-300 transition-all group">
                                 <div className="text-left hidden md:block">
-                                    <p className="text-[11px] font-black text-[#2E1A47] leading-none">{String(user?.name)}</p>
-                                    <p className="text-[9px] text-purple-600 font-bold">@{String(user?.username)}</p>
+                                    <p className="text-[11px] font-black text-[#2E1A47] dark:text-gray-100 leading-none">{String(user?.name)}</p>
+                                    <p className="text-[9px] text-purple-600 dark:text-purple-400 font-bold">@{String(user?.username)}</p>
                                 </div>
                                 <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-inner overflow-hidden" style={{ backgroundColor: user?.profileColor || '#2E1A47' }}>
                                     {user?.avatar ? <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" /> : String(user?.name)?.[0]}
@@ -2978,7 +3500,7 @@
 
                     {/* المحتوى الرئيسي */}
                     <div className="flex flex-1 overflow-hidden">
-                        <aside className="hidden md:flex flex-col w-72 bg-[#2E1A47] text-white p-5 gap-2 border-l border-white/5">
+                        <aside className="hidden md:flex flex-col w-72 bg-[#2E1A47] dark:bg-[#120822] text-white p-5 gap-2 border-l border-white/5 dark:border-darkBorder">
                             <SidebarItem iconName="Home" label="الرئيسية والمنشورات" active={view === 'home'} onClick={() => setView('home')} />
                             <SidebarItem iconName="MessageSquare" label="الرسائل والمجموعات" active={view === 'messages'} onClick={() => setView('messages')} badge={unreadMessagesCount > 0 ? unreadMessagesCount : null} />
                             <SidebarItem iconName="Wallet" label="المحفظة والعملات" active={view === 'bank'} onClick={() => setView('bank')} />
@@ -2990,7 +3512,7 @@
                                 </button>
                             </div>
                         </aside>
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-36 md:pb-8 bg-[#FDFCF8] overscroll-contain">
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-36 md:pb-8 bg-[#FDFCF8] dark:bg-darkBg overscroll-contain">
                             <div className="max-w-4xl mx-auto h-full">
                                 {view === 'home' && (
                                     <HomeView 
@@ -3011,7 +3533,16 @@
                                         onSendMessage={handleSendMessage}
                                     />
                                 )}
-                                {view === 'bank' && <BankView user={user} users={users} userLoans={loanRequests} onTransfer={handleTransferCoins} onOpenLoanModal={(amt) => setLoanModalAmount(amt)} />}
+                                {view === 'bank' && (
+                                    <BankView 
+                                        user={user} 
+                                        users={users} 
+                                        userLoans={loanRequests} 
+                                        onTransfer={handleTransferCoins} 
+                                        onOpenLoanModal={(amt) => setLoanModalAmount(amt)}
+                                        onOpenLuckyWheel={() => setIsWheelOpen(true)}
+                                    />
+                                )}
                                 {view === 'profile' && <ProfileView user={user} posts={posts} updateProfile={updateProfile} onDeletePost={handleDeletePost} onLogout={handleLogout} />}
                                 {view === 'admin' && (
                                     <AdminView 
@@ -3034,7 +3565,7 @@
 
                     {/* شريط الملاحة السفلي لشاشات الهواتف */}
                     <div className={`md:hidden fixed bottom-3 inset-x-3 z-[100] ${view === 'messages' && selectedChatTarget ? 'hidden' : 'block'}`}>
-                        <nav className="h-16 glass-morphism rounded-2xl flex justify-around items-center px-2 shadow-2xl border border-gray-100">
+                        <nav className="h-16 glass-morphism rounded-2xl flex justify-around items-center px-2 shadow-2xl border border-gray-100 dark:border-darkBorder">
                             <MobileNavItem iconName="Home" label="الرئيسية" active={view === 'home'} onClick={() => setView('home')} />
                             <MobileNavItem iconName="MessageSquare" label="الرسائل" active={view === 'messages'} onClick={() => setView('messages')} badge={unreadMessagesCount > 0 ? unreadMessagesCount : null} />
                             <MobileNavItem iconName="Wallet" label="المحفظة" active={view === 'bank'} onClick={() => setView('bank')} />
